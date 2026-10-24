@@ -5,6 +5,8 @@ import android.view.WindowManager
 import android.webkit.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textview.MaterialTextView
 
 /** No JavaScript bridges, password interception, TLS bypass, file access or native API credentials. */
 class ManagementWebActivity : AppCompatActivity() {
@@ -15,9 +17,9 @@ class ManagementWebActivity : AppCompatActivity() {
         val url = intent.getStringExtra("url") ?: return finish()
         if (!ManagementPolicy.validUrl(url)) return finish()
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val address = TextView(this).apply { text = java.net.URI(url).host; setPadding(16,16,16,16) }
+        val address = MaterialTextView(this).apply { text = java.net.URI(url).host; setPadding(16,16,16,16) }
         root.addView(address)
-        root.addView(Button(this).apply { text = "Fechar painel"; setOnClickListener { finish() } })
+        root.addView(MaterialButton(this).apply { text = "Fechar painel"; setOnClickListener { finish() } })
         web = WebView(this)
         web.settings.apply {
             javaScriptEnabled = true

@@ -43,3 +43,24 @@ Nenhuma conta real de NextDNS/AdGuard foi utilizada. Não há chaves reais nos t
 - ADB: nenhum aparelho conectado. Os testes instrumentados foram compilados, mas NÃO executados. Logins reais, MFA, expiração de cookies, tile e Shizuku em aparelho precisam seguir o roteiro acima.
 
 APK debug destinado à avaliação. Não representa certificação de produção nem validação de credenciais reais dos provedores.
+
+## Alpha 2 — 24/10/2026
+
+- Build: testDebugUnitTest, assembleRelease, assembleDebugAndroidTest e lintRelease concluídos com sucesso.
+- JVM: 18 testes, 0 falhas. Inclui 8 novos testes de descoberta e os 10 testes anteriores.
+- Lint release: 0 erros e 108 avisos (incluindo traduções incompletas herdadas, textos de interface e dependências). Nenhuma checagem de segurança foi desativada.
+- Integridade: scripts/check-upstream.ps1 aprovado; alternador, dados Room, backup, Quick Settings e Shizuku idênticos à base.
+- APK release: 5.015.150 bytes, pacote io.github.billysanca.dnsmanager, versionCode 20, versionName 1.11.0-manager-alpha.2. Modo não depurável, alinhamento e assinatura verificados.
+- Certificado release SHA-256: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6 (mesmo da Alpha 1 otimizada).
+- Instrumentação compilada, sem execução em aparelho. APIs com contas reais e revisão visual no Android 9/atual, claro/escuro, fonte grande e teclado ainda precisam de validação.
+
+### Roteiro adicional
+
+1. Atualize a Alpha 1 release com a Alpha 2 sem desinstalar. Confira hostnames, ordem, configurações e chaves existentes.
+2. Configure NextDNS usando hostname com ID e nome de dispositivo. Confira a sugestão do provedor, link Conta e preenchimento após Conectar.
+3. Configure AdGuard usando um hostname DoT de dispositivo. Confira que o ID preenchido corresponde ao servidor, não ao dispositivo. Confira o link direto para API keys.
+4. Teste conta com vários perfis/servidores e hostname sem correspondência: deve exigir seleção explícita ou preenchimento manual. Nenhum servidor deve ser escolhido apenas por ser o único resultado.
+5. Troque o provedor e a chave durante uma consulta: os dados de descoberta anteriores devem ser invalidados e a chave digitada deve ser limpa ao trocar de provedor. Cancelar não deve salvar.
+6. Use uma URL web personalizada já salva e confira que ela é preservada. Um hostname desconhecido não deve receber automaticamente um painel NextDNS.
+7. Confira menus expostos, campos, botões, cartões, progresso e diálogos Material com tema claro/escuro, fonte grande e leitor de tela.
+8. Registre os valores de private_dns_specifier e private_dns_mode antes/depois de configurar/consultar: devem permanecer iguais.

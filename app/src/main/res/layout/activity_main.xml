@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toBottomOf="@id/management_tabs" />
 
-    <TextView
+    <com.google.android.material.textview.MaterialTextView
         android:id="@+id/empty_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -51,7 +51,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.45" />
 
-    <TextView
+    <com.google.android.material.textview.MaterialTextView
         android:id="@+id/empty_view_hint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

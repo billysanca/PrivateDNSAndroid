@@ -4,6 +4,8 @@ Fork de karasevm/PrivateDNSAndroid, base `189afad221b63b06e8f1f9c429aac91ef4f3bb
 Referência de arquitetura: eyalm2000/adns, `374e5b1193491b5b12ed50fb761115bf2ceff020`.
 O adns foi consultado para separação de clientes/autenticação. Não foram copiados seus fluxos de cookies, login por senha, endpoints internos ou funções de escrita.
 
+A Alpha 2 adiciona preenchimento assistido por API e componentes Material 3. Veja [o passo a passo e links oficiais](docs/ALPHA2.md).
+
 ## Instalar e preservar dados
 
 O APK debug usa `io.github.billysanca.dnsmanager.dev` (release: `io.github.billysanca.dnsmanager`), Android 9 ou posterior.

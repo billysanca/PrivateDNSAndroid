@@ -12,7 +12,7 @@
         android:paddingTop="10dp"
         android:paddingEnd="17dp">
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/autoOptionHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

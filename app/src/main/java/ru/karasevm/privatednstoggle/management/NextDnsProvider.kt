@@ -1,6 +1,12 @@
 package ru.karasevm.privatednstoggle.management
 
 class NextDnsProvider(private val transport: ReadTransport) : DnsProvider {
+    override fun discover(hostname: String, key: String): DiscoveryResult {
+        val targets = DiscoveryPages(transport).read("https://api.nextdns.io/profiles", "X-Api-Key", key, false)
+            .map { it.target() }.distinctBy { it.id }
+        val hint = ProviderSetup.nextDnsProfile(hostname)
+        return DiscoveryResult(targets, targets.singleOrNull { it.id == hint }?.id)
+    }
     override val id = "nextdns"
     override fun read(profile: String, key: String, now: Long): List<ReadSection> {
         require(ManagementPolicy.validProfile(profile))

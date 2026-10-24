@@ -2,7 +2,9 @@
 
 Fork de PrivateDNSAndroid com aba nativa de leitura para NextDNS e AdGuard DNS e painéis HTTPS por hostname via Custom Tabs ou WebView. Preserva alternador, múltiplos hostnames, Quick Settings e Shizuku.
 
-**Pacote de teste:** `io.github.billysanca.dnsmanager.dev`. Exporte os dados no aplicativo original e importe no fork; os pacotes podem coexistir.
+**Pacote release:** `io.github.billysanca.dnsmanager`. Exporte os dados no aplicativo original e importe no fork; os pacotes podem coexistir.
+
+Veja a [Alpha 2: configuração automática e Material 3](docs/ALPHA2.md).
 
 Consulte [instalação, segurança e arquitetura](README-FORK.md) e [testes e limitações](docs/TESTES.md). As instruções abaixo são o README histórico do upstream e se referem ao pacote original. Não há troca automática nem cliente de escrita remota.
 

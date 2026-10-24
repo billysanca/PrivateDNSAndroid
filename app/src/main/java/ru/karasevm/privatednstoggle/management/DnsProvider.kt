@@ -40,6 +40,7 @@ class ApiFailure(val status: Int) : Exception(when (status) {
 })
 data class ReadSection(val title: String, val json: String)
 interface DnsProvider {
+    fun discover(hostname: String, key: String): DiscoveryResult
     val id: String
     fun read(profile: String, key: String, now: Long = System.currentTimeMillis()): List<ReadSection>
 }

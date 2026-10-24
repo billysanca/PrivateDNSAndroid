@@ -248,7 +248,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding.topAppBar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.privacy_policy -> {
-                    AlertDialog.Builder(this).setTitle("Privacidade · DNS Manager")
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Privacidade · DNS Manager")
                         .setMessage("As consultas nativas enviam sua chave somente à API oficial do provedor escolhido, por HTTPS. As chaves ficam cifradas com Android Keystore e não entram no backup. Os resultados não são gravados em disco. Painéis web usam as políticas e sessões do próprio site; o aplicativo não captura senhas. Custom Tabs usa os dados do navegador; WebView mantém cookies locais que podem ser apagados em Gerenciamento. Não há analytics nem troca automática de DNS.")
                         .setPositiveButton(android.R.string.ok, null).show()
                     true
@@ -398,7 +398,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
             }
         }
 
-        permissionDialog = AlertDialog.Builder(this)
+        permissionDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setView(dialogView)
             .setCancelable(false)
             .show()

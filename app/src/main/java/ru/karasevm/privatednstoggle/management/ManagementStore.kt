@@ -6,6 +6,7 @@ import org.json.JSONObject
 /** Metadata separate from the upstream database and backup format. */
 class ManagementStore(context: Context) {
     private val prefs = context.getSharedPreferences("management", Context.MODE_PRIVATE)
+    fun contains(host: String) = prefs.contains(host)
     fun get(host: String): ManagementConfig = runCatching {
         val j = JSONObject(prefs.getString(host, "{}")!!)
         ManagementConfig(ManagementMode.valueOf(j.optString("mode", "NONE")), j.optString("url"),
