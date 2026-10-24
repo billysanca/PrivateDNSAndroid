@@ -1,3 +1,12 @@
+# DNS Manager — gerenciamento universal de DNS
+
+Fork de PrivateDNSAndroid com aba nativa de leitura para NextDNS e AdGuard DNS e painéis HTTPS por hostname via Custom Tabs ou WebView. Preserva alternador, múltiplos hostnames, Quick Settings e Shizuku.
+
+**Pacote de teste:** `io.github.billysanca.dnsmanager.dev`. Exporte os dados no aplicativo original e importe no fork; os pacotes podem coexistir.
+
+Consulte [instalação, segurança e arquitetura](README-FORK.md) e [testes e limitações](docs/TESTES.md). As instruções abaixo são o README histórico do upstream e se referem ao pacote original. Não há troca automática nem cliente de escrita remota.
+
+---
 [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/karasevm/PrivateDNSAndroid/total)](https://github.com/karasevm/PrivateDNSAndroid/releases/latest)
 [![GitHub Release](https://img.shields.io/github/v/release/karasevm/PrivateDNSAndroid)](https://github.com/karasevm/PrivateDNSAndroid/releases/latest)
 [![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/ru.karasevm.privatednstoggle&label=IzzyOnDroid)](https://apt.izzysoft.de/fdroid/index/apk/ru.karasevm.privatednstoggle)

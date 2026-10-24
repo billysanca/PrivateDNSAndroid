@@ -56,6 +56,8 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
     private lateinit var binding: ActivityMainBinding
     private lateinit var sharedPrefs: SharedPreferences
     private lateinit var adapter: ServerListRecyclerAdapter
+    private lateinit var managementPanel: ru.karasevm.privatednstoggle.management.ManagementPanel
+    private var managementVisible = false
     private lateinit var clipboard: ClipboardManager
     private val dnsServerViewModel: DnsServerViewModel by viewModels { DnsServerViewModelFactory((application as PrivateDNSApp).repository) }
 
@@ -177,6 +179,29 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this)
+        val params = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, 0).apply {
+            topToBottom = R.id.management_tabs
+            bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+        }
+        managementPanel.view.visibility = View.GONE
+        binding.root.addView(managementPanel.view, params)
+        binding.managementTabs.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                managementVisible = tab.position == 1
+                if (managementVisible) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                managementPanel.view.visibility = if (managementVisible) View.VISIBLE else View.GONE
+                binding.recyclerView.visibility = if (managementVisible) View.GONE else View.VISIBLE
+                binding.floatingActionButton.visibility = if (managementVisible) View.GONE else View.VISIBLE
+                binding.emptyView.visibility = if (!managementVisible && dnsServerViewModel.allServers.value.orEmpty().isEmpty()) View.VISIBLE else View.GONE
+                binding.emptyViewHint.visibility = binding.emptyView.visibility
+                if (managementVisible) managementPanel.update(dnsServerViewModel.allServers.value.orEmpty())
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab) {}
+        })
 
         linearLayoutManager = LinearLayoutManager(this)
         binding.recyclerView.layoutManager = linearLayoutManager
@@ -191,7 +216,8 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
 
         dnsServerViewModel.allServers.observe(this) { servers ->
             adapter.submitList(servers)
-            if (servers.isEmpty()) {
+            managementPanel.update(servers)
+            if (servers.isEmpty() && !managementVisible) {
                 binding.emptyView.visibility = View.VISIBLE
                 binding.emptyViewHint.visibility = View.VISIBLE
             } else {
@@ -222,14 +248,11 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding.topAppBar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.privacy_policy -> {
-                    val browserIntent = Intent(
-                        Intent.ACTION_VIEW,
-                        "https://karasevm.github.io/PrivateDNSAndroid/privacy_policy".toUri()
-                    )
-                    startActivity(browserIntent)
+                    AlertDialog.Builder(this).setTitle("Privacidade · DNS Manager")
+                        .setMessage("As consultas nativas enviam sua chave somente à API oficial do provedor escolhido, por HTTPS. As chaves ficam cifradas com Android Keystore e não entram no backup. Os resultados não são gravados em disco. Painéis web usam as políticas e sessões do próprio site; o aplicativo não captura senhas. Custom Tabs usa os dados do navegador; WebView mantém cookies locais que podem ser apagados em Gerenciamento. Não há analytics nem troca automática de DNS.")
+                        .setPositiveButton(android.R.string.ok, null).show()
                     true
                 }
-
                 R.id.export_settings_clipboard -> {
                     dnsServerViewModel.viewModelScope.launch {
                         val data = BackupUtils.export(dnsServerViewModel, sharedPrefs)
@@ -388,8 +411,14 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         return true
     }
 
+    override fun onStop() {
+        if (::managementPanel.isInitialized) managementPanel.suspendReading()
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
+        if (::managementPanel.isInitialized && managementVisible) managementPanel.update(dnsServerViewModel.allServers.value.orEmpty())
         // Check if WRITE_SECURE_SETTINGS is granted
         if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) {
             // Check if Shizuku is available

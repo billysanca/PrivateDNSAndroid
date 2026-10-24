@@ -10,12 +10,14 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension>  {
+    // Upstream locales are incomplete; keep these visible as warnings.
+    lint { warning += "MissingTranslation" }
     compileSdk = 37
     androidResources {
         generateLocaleConfig = true
     }
     defaultConfig {
-        applicationId = "ru.karasevm.privatednstoggle"
+        applicationId = "io.github.billysanca.dnsmanager"
         versionCode = 19
         versionName = "1.11.0"
 
@@ -58,6 +60,7 @@ extensions.configure<ApplicationExtension>  {
 }
 
 dependencies {
+    implementation("androidx.browser:browser:1.8.0")
     implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
