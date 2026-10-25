@@ -79,6 +79,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
     private val itemTouchHelper by lazy {
         val simpleItemTouchCallback =
             object : ItemTouchHelper.SimpleCallback(UP or DOWN, 0) {
+                override fun isLongPressDragEnabled() = false
                 var dragFrom = -1
                 var dragTo = -1
 
@@ -243,15 +244,13 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
             }
         }
         adapter.onItemClick = { id ->
+            selectionPrefs.edit().putInt("id", id).apply()
+            updateProfileSubtitle()
+        }
+        adapter.onItemLongClick = { id ->
             dnsServerViewModel.viewModelScope.launch {
                 val server = dnsServerViewModel.getById(id)
-                if (server != null) {
-                    selectionPrefs.edit().putInt("id", server.id).apply()
-                    updateProfileSubtitle()
-                    val newFragment =
-                        AddServerDialogFragment(server)
-                    newFragment.show(supportFragmentManager, "edit_server")
-                }
+                if (server != null) AddServerDialogFragment(server).show(supportFragmentManager, "edit_server")
             }
         }
         adapter.onDragStart = { viewHolder ->

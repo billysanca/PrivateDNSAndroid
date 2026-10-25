@@ -134,3 +134,28 @@ Sem contas reais e sem aparelho conectado, os itens de UI/rede acima continuam p
 - Assinatura v3 e alinhamento verificados; certificado SHA-256 preservado: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
 - SHA-256 APK: 2c711f5e2dd82fdad74b8b5d80ef594743e0ee11ec8565808bbd15b6a50cd242.
 - Testes instrumentados compilados, não executados em aparelho. UI, login/MFA web e APIs com contas reais continuam pendentes.
+
+## Alpha 6 — gestos, linhas compactas e atualização
+
+- Verificar toque na primeira aba: seleciona o perfil, sem abrir editor. Toque longo: abre editor e não muda silenciosamente a seleção. Arrastar continua funcionando pela alça.
+- FourTabsRegressionTest inclui teste instrumentado de dispatch separado de clique e toque longo. Compilar não equivale a executar em aparelho.
+- RefreshPolicyRegressionTest cobre limites das cadências: modos desconhecidos/manual não criam polling; modos ativos nunca usam menos de 5 s nem mais de 60 s.
+- Consultas: conferir linhas mais baixas, menu ⋮ à direita com alvo de 48 dp, ausência do botão textual, mesma ação por toque longo, divisórias Material e fundos alternados em tema claro/escuro.
+- Testar TalkBack, fontes 200%, domínios longos e dispositivos pequenos. Menu e confirmação precisam identificar o domínio completo.
+- Na API de teste, habilitar cada intervalo e verificar novas leituras somente com a página nativa aberta. Buscar e selecionar chips: atualização periódica mantém texto/filtro e rolagem quando possível.
+- Abrir menu/confirmação durante atualização: interação não deve ser interrompida pela reconstrução das linhas.
+- Sair do app ou voltar à aba DNS: parar consultas e retornar ao modo Manual. Configurações e provedores web não devem gerar polling nativo.
+- Simular 401/403/429, falha de rede e resposta inválida: atualização automática deve parar, voltar ao modo Manual e mostrar erro sem laço de retry.
+- Confirmar que polling nunca envia regras ou altera DNS do Android. Bloqueio/liberação continua exigindo confirmação individual.
+- Validação visual, gestos físicos, continuidade real e cotas do provedor permanecem pendentes sem aparelho/credenciais reais.
+
+### Resultado final Alpha 6 — 25/10/2026
+
+- testDebugUnitTest, assembleRelease, assembleDebugAndroidTest e lintRelease: BUILD SUCCESSFUL.
+- JVM: 36 testes, 0 falhas/erros. Lint: 0 erros, 119 avisos; sem supressões para aprovar a versão.
+- Teste instrumentado de toque/toque longo compilado junto à bateria existente; não executado por ausência de aparelho.
+- Integridade do núcleo original: PASS. O adapter difere apenas nas duas adições autorizadas do callback de toque longo; ordenação por alça permanece.
+- APK otimizado sem debug: 5.138.703 bytes; pacote io.github.billysanca.dnsmanager; versionCode 24; versionName 1.12.0-alpha.6.
+- Assinatura v3 e alinhamento verificados; certificado SHA-256: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
+- SHA-256 APK: ea9c43b166592d842ed38edc9a33e12120ddedf6b74c3f8563cd34bd45a997e2.
+- Revisão visual, gestos físicos e atualização periódica com contas reais permanecem pendentes.

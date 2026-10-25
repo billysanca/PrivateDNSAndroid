@@ -6,7 +6,7 @@ O adns foi consultado para separação de clientes/autenticação. Não foram co
 
 A Alpha 2 adiciona preenchimento assistido por API e componentes Material 3. Veja [o passo a passo e links oficiais](docs/ALPHA2.md).
 
-A versão atual é [Nexo DNS Alpha 5: perfil compartilhado da primeira aba e ações nativas por menu/toque longo](docs/NEXO-ALPHA5.md). Em caso de diferença, prevalece a documentação da Alpha 5.
+A versão atual é [Nexo DNS Alpha 6: gestos separados, consultas compactas e atualização periódica](docs/NEXO-ALPHA6.md). Em caso de diferença, prevalece a documentação da Alpha 6.
 
 ## Instalar e preservar dados
 

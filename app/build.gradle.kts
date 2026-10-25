@@ -18,8 +18,8 @@ extensions.configure<ApplicationExtension>  {
     }
     defaultConfig {
         applicationId = "io.github.billysanca.dnsmanager"
-        versionCode = 23
-        versionName = "1.12.0-alpha.5"
+        versionCode = 24
+        versionName = "1.12.0-alpha.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         targetSdk = 37

@@ -29,6 +29,7 @@ class ServerListRecyclerAdapter(private val showDragHandle: Boolean) :
     }
 
     var onItemClick: ((Int) -> Unit)? = null
+    var onItemLongClick: ((Int) -> Unit)? = null
     var onDragStart: ((DnsServerViewHolder) -> Unit)? = null
     private var items: MutableList<DnsServer> = mutableListOf()
 
@@ -115,6 +116,7 @@ class ServerListRecyclerAdapter(private val showDragHandle: Boolean) :
         var id = 0
 
         init {
+            view.setOnLongClickListener { onItemLongClick?.invoke(id); true }
             view.setOnClickListener {
                 onItemClick?.invoke(id)
             }

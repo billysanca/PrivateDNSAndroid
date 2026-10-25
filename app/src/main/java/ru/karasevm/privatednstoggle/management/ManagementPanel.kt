@@ -33,6 +33,7 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
     private val store = ManagementStore(activity)
     private val vault = ApiKeyVault(activity)
     private var job: Job? = null
+    private var refreshMode = 0
     private var selected: String? = null
     private var page = 3
     private var lastServers = emptyList<DnsServer>()
@@ -196,7 +197,13 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
             val progress = LinearProgressIndicator(activity).apply { isIndeterminate = true }
             detail.addView(progress)
             detail.addView(results)
-            button(context, "Atualizar dados") { cache.clear(); update(lastServers, page) }
+            button(context, "Atualizar agora") { cache.clear(); update(lastServers, page) }
+            val refresh = choice(context, "Atualização automática", RefreshPolicy.labels, refreshMode) {
+                refreshMode = it
+                cache.clear()
+                update(lastServers, page)
+            }
+            text(context, "Contínuo consulta a API a cada 5 segundos, somente nesta aba e com o app aberto.")
             val requestKey = "$host|${config.provider}|${config.profile}"
             val updateLabel = text(context, "Aguardando atualização…")
             fun showTime() {
@@ -204,23 +211,35 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
                     updateLabel.text = "Atualizado às " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(it))
                 }
             }
+            var updateQueries: ((List<ReadSection>) -> Unit)? = null
             fun render(sections: List<ReadSection>) {
-                results.removeAllViews()
-                if(page == 1) renderStats(results, config, sections) else renderQueries(results, host, config, sections)
+                val scroll = view.scrollY
+                if(page == 1) {
+                    results.removeAllViews()
+                    renderStats(results, config, sections)
+                } else if(updateQueries == null) {
+                    results.removeAllViews()
+                    updateQueries = renderQueries(results, host, config, sections)
+                } else updateQueries?.invoke(sections)
+                view.post { if(selected == host && view.isShown) view.scrollTo(0, scroll) }
             }
             val existing = cache.get(requestKey, android.os.SystemClock.elapsedRealtime())
-            if (existing != null) {
+            if (existing != null && refreshMode == 0) {
                 progress.visibility = View.GONE
                 showTime()
                 runCatching { render(existing) }.onFailure { text(results, "Resposta incompatível. Atualize os dados ou confira a conexão.") }
                 return
             }
             job = activity.lifecycleScope.launch {
-                try {
+                while(isActive) {
+                  while(writing || !activity.hasWindowFocus()) delay(300)
+                  progress.visibility = View.VISIBLE
+                  try {
                     val sections = withContext(Dispatchers.IO) {
                         val token = vault.get("$host:${config.provider}") ?: error("Conecte a conta em Configurações")
                         Providers.get(config.provider).read(config.profile, token)
                     }
+                    while(writing || !activity.hasWindowFocus()) delay(300)
                     render(sections)
                     cache.put(requestKey, sections, android.os.SystemClock.elapsedRealtime())
                     updateTimes[requestKey] = System.currentTimeMillis(); showTime()
@@ -230,8 +249,14 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
                     val error = card(results)
                     text(error, "Não foi possível atualizar", true)
                     text(error, errorMessage(e))
+                    refreshMode = 0; refresh.index = 0; refresh.input.setText(RefreshPolicy.labels[0], false)
                     button(error, "Revisar conexão") { configure(host) }
-                } finally { progress.visibility = View.GONE }
+                  } finally { progress.visibility = View.GONE }
+                  val interval = RefreshPolicy.interval(refreshMode)
+                  if(interval == 0L) break
+                  delay(interval)
+                  while(writing) delay(500)
+                }
             }
         }
         text(column, "DNS escolhido na primeira aba · ${servers[initial].server}")
@@ -316,46 +341,72 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
             text(quota, "Cotas da conta inteira; estatísticas acima filtradas pelo servidor.")
         }
     }
-    private fun renderQueries(parent: LinearLayout, host: String, config: ManagementConfig, sections: List<ReadSection>) {
-        val queries = DashboardData.queries(config.provider, sections[1].json)
+    private fun renderQueries(parent: LinearLayout, host: String, config: ManagementConfig, sections: List<ReadSection>): (List<ReadSection>) -> Unit {
+        var queries = DashboardData.queries(config.provider, sections[1].json)
         val (_, search) = field(parent, "Buscar domínio nestas consultas")
         val filters = com.google.android.material.chip.ChipGroup(activity).apply { isSingleSelection = true; isSelectionRequired = true }
         var filter = 0
-        val list = column()
+        val list = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
         fun renderList() {
             list.removeAllViews()
             val needle = search.text.toString().trim()
             val matching = queries.filter { it.domain.contains(needle, true) && (filter == 0 || (filter == 1 && it.blocked) || (filter == 2 && !it.blocked)) }
             if(matching.isEmpty()) text(list, if(queries.isEmpty()) "Nenhuma consulta no período ou registro desativado no provedor." else "Nenhuma consulta corresponde ao filtro.")
-            matching.forEach { query ->
-                val entry = card(list)
-                text(entry, query.domain.ifBlank { "Domínio não informado" }, true).textSize = 18f
+            matching.forEachIndexed { index, query ->
+                val entry = LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(12), dp(4), dp(4), dp(4))
+                    setBackgroundColor(com.google.android.material.color.MaterialColors.getColor(this,
+                        if(index % 2 == 0) com.google.android.material.R.attr.colorSurfaceContainerLow
+                        else com.google.android.material.R.attr.colorSurfaceContainer))
+                }
+                list.addView(entry)
+                val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
+                val content = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
+                row.addView(content, LinearLayout.LayoutParams(0, -2, 1f))
+                entry.addView(row)
+                val menu = com.google.android.material.button.MaterialButton(activity, null, com.google.android.material.R.attr.materialIconButtonStyle).apply {
+                    icon = androidx.appcompat.content.res.AppCompatResources.getDrawable(activity, ru.karasevm.privatednstoggle.R.drawable.ic_more_vert)
+                    contentDescription = "Menu do domínio " + query.domain
+                    minimumWidth = dp(48); minimumHeight = dp(48)
+                    insetTop = 0; insetBottom = 0
+                }
+                row.addView(menu, LinearLayout.LayoutParams(dp(48), dp(48)))
+                text(content, query.domain.ifBlank { "Domínio não informado" }, true).apply { textSize = 15f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, dp(2), 0, dp(2)) }
                 val time = runCatching { java.time.OffsetDateTime.parse(query.timestamp).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm:ss")) }.getOrDefault(query.timestamp)
-                text(entry, "${time.ifBlank { "Horário não informado" }} · ${query.status.ifBlank { "Status não informado" }}")
-                if(query.device.isNotBlank()) text(entry, "Dispositivo: ${query.device}")
-                text(entry, if(query.status.isBlank()) "? Status não informado" else if(query.blocked) "⛔ Bloqueada no registro" else "✓ Não bloqueada no registro")
+                text(content, "${time.ifBlank { "Horário não informado" }} · ${query.status.ifBlank { "Status não informado" }}").apply { textSize = 12f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, 0, 0, dp(2)) }
+                if(query.device.isNotBlank()) text(content, query.device).apply { textSize = 12f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, 0, 0, dp(2)) }
+                val statusIcon = if(query.blocked) "⛔ " else if(query.status.isBlank()) "? " else "✓ "
+                (content.getChildAt(0) as MaterialTextView).text = statusIcon + query.domain.ifBlank { "Domínio não informado" }
+                (content.getChildAt(0) as MaterialTextView).setTextColor(com.google.android.material.color.MaterialColors.getColor(entry,
+                    if(query.blocked) androidx.appcompat.R.attr.colorError else com.google.android.material.R.attr.colorOnSurface))
                 val canUseDomain = runCatching { DomainPolicy.normalize(query.domain) }.isSuccess
                 if(canUseDomain) {
                     fun actions() {
                         val native = config.provider == "nextdns"
                         val labels = if(native) arrayOf("Bloquear domínio", "Liberar domínio", "Abrir painel oficial")
                             else arrayOf("Gerenciar regra no painel oficial")
-                        MaterialAlertDialogBuilder(activity).setTitle(query.domain)
-                            .setItems(labels) { _, index ->
-                                if(native && index < 2) confirmRule(host, config, query.domain, index == 1, entry)
-                                else {
-                                    if(!native) MaterialAlertDialogBuilder(activity)
-                                        .setTitle("Gerenciar regra no provedor")
-                                        .setMessage("A API do AdGuard substitui a lista inteira de regras e não oferece adição individual com proteção contra alterações concorrentes. Para preservar suas regras, esta ação abre o painel oficial.")
-                                        .setPositiveButton("Abrir painel") { _, _ -> openWeb(config.copy(url = ProviderSetup.dashboardUrl(config.provider, config.profile))) }
-                                        .setNegativeButton("Cancelar", null).show()
-                                    else openWeb(config.copy(url = ProviderSetup.dashboardUrl(config.provider, config.profile)))
-                                }
-                            }.setNegativeButton("Cancelar", null).show()
+                        val popup = androidx.appcompat.widget.PopupMenu(activity, menu)
+                        labels.forEachIndexed { index, label -> popup.menu.add(0, index, index, label) }
+                        popup.setOnMenuItemClickListener { item ->
+                            val index = item.itemId
+                            if(native && index < 2) confirmRule(host, config, query.domain, index == 1, entry)
+                            else if(!native) MaterialAlertDialogBuilder(activity)
+                                .setTitle("Gerenciar regra no provedor")
+                                .setMessage("A API do AdGuard substitui a lista inteira de regras e não oferece adição individual com proteção contra alterações concorrentes. Para preservar suas regras, esta ação abre o painel oficial.")
+                                .setPositiveButton("Abrir painel") { _, _ -> openWeb(config.copy(url = ProviderSetup.dashboardUrl(config.provider, config.profile))) }
+                                .setNegativeButton("Cancelar", null).show()
+                            else openWeb(config.copy(url = ProviderSetup.dashboardUrl(config.provider, config.profile)))
+                            true
+                        }
+                        popup.show()
                     }
-                    button(entry, "Ações do domínio ⋮") { actions() }
+                    menu.setOnClickListener { actions() }
                     entry.setOnLongClickListener { actions(); true }
-                }
+                } else menu.visibility = View.INVISIBLE
+                list.addView(com.google.android.material.divider.MaterialDivider(activity).apply {
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                }, LinearLayout.LayoutParams(-1, dp(1)))
             }
         }
         listOf("Todas", "Bloqueadas", "Outras").forEachIndexed { index, label ->
@@ -366,10 +417,11 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
             filters.addView(chip)
         }
         parent.addView(filters)
-        text(parent, "Até 50 consultas recentes. Busca e filtros são locais. Use Ações do domínio ou mantenha uma consulta pressionada para bloquear/liberar.")
+        text(parent, "Até 50 consultas recentes. Busca e filtros são locais. Use ⋮ à direita ou toque longo para bloquear/liberar.")
         parent.addView(list)
         search.doAfterTextChanged { renderList() }
         renderList()
+        return { latest -> queries = DashboardData.queries(config.provider, latest[1].json); renderList() }
     }
 
     private var writing = false
@@ -404,7 +456,7 @@ Adicionar à ${if(allow) "Allowlist" else "Denylist"}. A regra afeta todos os di
                 }
             }.show()
     }
-    fun suspendReading() { job?.cancel(); cache.clear(); column.removeAllViews() }
+    fun suspendReading() { job?.cancel(); refreshMode = 0; cache.clear(); column.removeAllViews() }
     private fun openLink(url: String) {
         if (!ManagementPolicy.validUrl(url)) return
         runCatching { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(activity, url.toUri()) }

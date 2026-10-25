@@ -34,4 +34,24 @@ class FourTabsRegressionTest {
             }
         }
     }
+    @Test fun tapAndLongPressDispatchDifferentActions() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val adapter = ru.karasevm.privatednstoggle.ui.ServerListRecyclerAdapter(false)
+                val holder = adapter.onCreateViewHolder(android.widget.FrameLayout(activity), 0)
+                holder.id = 42
+                var selected: Int? = null
+                var edited: Int? = null
+                adapter.onItemClick = { selected = it }
+                adapter.onItemLongClick = { edited = it }
+                holder.itemView.performClick()
+                assertEquals(42, selected)
+                assertNull(edited)
+                selected = null
+                assertTrue(holder.itemView.performLongClick())
+                assertNull(selected)
+                assertEquals(42, edited)
+            }
+        }
+    }
 }
