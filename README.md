@@ -13,7 +13,7 @@ A navegação inferior flutuante e os cartões seguem o princípio do ADNS. A pr
 
 ## Instalar e atualizar
 
-[Baixe o APK otimizado no Releases](https://github.com/billysanca/PrivateDNSAndroid/releases/tag/v1.12.0-alpha.4).
+[Baixe o APK otimizado no Releases](https://github.com/billysanca/PrivateDNSAndroid/releases/tag/v1.12.0-alpha.5).
 
 - Android 9 ou posterior; APK release sem debug.
 - Nome: **Nexo DNS**. Pacote preservado: `io.github.billysanca.dnsmanager`.
@@ -24,12 +24,13 @@ Quick Settings e Shizuku permanecem disponíveis. Navegar e consultar o provedor
 
 ## Conectar o provedor
 
-Use Configurações, cole a chave de API e toque em Salvar. A descoberta do perfil/servidor acontece automaticamente; ambiguidades exigem escolha na lista. Há links oficiais para obter a chave e preencher o que não puder ser descoberto. Depois da conexão, Estatísticas e Consultas carregam ao abrir.
+Use Configurações, cole a chave de API e toque em Salvar. A descoberta do perfil/servidor acontece automaticamente; ambiguidades exigem escolha na lista. Há links oficiais para obter a chave e preencher o que não puder ser descoberto. Depois da conexão, Estatísticas e Consultas carregam ao abrir. Toque no hostname na primeira aba para escolher o perfil usado por todas as demais abas, sem seletores próprios. Bloquear/liberar NextDNS fica no menu Ações do domínio ou no toque longo da consulta.
 
 APIs oficiais NextDNS e AdGuard DNS para estatísticas e consultas. NextDNS também permite adicionar um domínio à lista de bloqueio/liberação, após confirmação individual. No AdGuard, regras são gerenciadas no painel oficial. Qualquer provedor pode ter um painel HTTPS associado ao hostname, aberto por Custom Tabs ou WebView opcional. Chaves são cifradas com Android Keystore; senhas dos painéis não são capturadas. Não há troca automática. As únicas escritas nativas são as ações individuais de domínio no NextDNS.
 
 ## Documentação e testes
 
+- [Alpha 5: seleção compartilhada e ações por menu/toque longo](docs/NEXO-ALPHA5.md)
 - [Alpha 4: DNS ativo, páginas web e regras confirmadas](docs/NEXO-ALPHA4.md)
 - [Nexo DNS Alpha 3: navegação, automação e limites](docs/NEXO-ALPHA3.md)
 - [Segurança, instalação e arquitetura](README-FORK.md)

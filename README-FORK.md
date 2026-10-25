@@ -6,7 +6,7 @@ O adns foi consultado para separação de clientes/autenticação. Não foram co
 
 A Alpha 2 adiciona preenchimento assistido por API e componentes Material 3. Veja [o passo a passo e links oficiais](docs/ALPHA2.md).
 
-A versão atual é [Nexo DNS Alpha 4: DNS ativo, páginas web e regras individuais](docs/NEXO-ALPHA4.md). As instruções abaixo registram o escopo inicial; em caso de diferença, prevalece a documentação da Alpha 4.
+A versão atual é [Nexo DNS Alpha 5: perfil compartilhado da primeira aba e ações nativas por menu/toque longo](docs/NEXO-ALPHA5.md). Em caso de diferença, prevalece a documentação da Alpha 5.
 
 ## Instalar e preservar dados
 
@@ -32,7 +32,7 @@ Na aba Configurações selecione o hostname e toque em Gerenciar conexão. NextD
 - Painel web: informe uma URL HTTPS. Custom Tabs é o padrão e usa o navegador padrão, suas sessões e seu gerenciador de senhas. Para usar outro navegador, altere o navegador padrão do Android. Se ele não suportar Custom Tabs, o intent pode abrir uma aba normal.
 - API nativa: selecione NextDNS ou AdGuard DNS, informe o identificador e uma chave de API emitida no site oficial. Deixe a chave em branco para manter a chave atual. Use Esquecer chave para removê-la localmente; revogação remota deve ser feita no site do provedor.
 
-Configurações edita a conexão do hostname selecionado sem alterar o DNS ativo. Estatísticas e Consultas seguem exclusivamente o DNS ativo cadastrado. Painéis web podem ter URLs específicas para cada uma dessas abas.
+Configurações edita a conexão do hostname selecionado sem alterar o DNS ativo. Todas as abas de gestão seguem o perfil escolhido na primeira aba; não apresentam seletores próprios. Essa escolha não altera o DNS do Android. Painéis web podem ter URLs específicas para cada uma dessas abas.
 
 As URLs podem ser alteradas para qualquer provedor. HTTP, portas inválidas e credenciais embutidas na URL são rejeitados. Portas HTTPS personalizadas são aceitas. Não inclua segredos nem tokens na URL. Custom Tabs é preferível para login com MFA/passkeys. Alguns provedores rejeitam WebView ou exigem cookies de terceiros; nesse caso use Custom Tabs. Não há tentativa de contornar políticas do provedor.
 

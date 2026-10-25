@@ -58,6 +58,19 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
     private lateinit var adapter: ServerListRecyclerAdapter
     private lateinit var managementPanel: ru.karasevm.privatednstoggle.management.ManagementPanel
     private var managementVisible = false
+    private val selectionPrefs by lazy { getSharedPreferences("management_selection", MODE_PRIVATE) }
+    private fun chosenManagementHost(servers: List<DnsServer>): String? {
+        val chosenId = if(selectionPrefs.contains("id")) selectionPrefs.getInt("id", 0) else null
+        val index = ru.karasevm.privatednstoggle.management.ManagementRouting.chosenIndex(
+            servers.map { it.id }, servers.map { it.server }, chosenId,
+            ru.karasevm.privatednstoggle.util.PrivateDNSUtils.getPrivateMode(contentResolver),
+            ru.karasevm.privatednstoggle.util.PrivateDNSUtils.getPrivateProvider(contentResolver))
+        return servers.getOrNull(index)?.server
+    }
+    private fun updateProfileSubtitle() {
+        binding.topAppBar.subtitle = chosenManagementHost(dnsServerViewModel.allServers.value.orEmpty())
+            ?.let { "Perfil selecionado · $it" } ?: "Escolha um perfil na aba DNS"
+    }
     private var selectedMainTab = 0
     private val mainTabIds = intArrayOf(R.id.nav_dns, R.id.nav_stats, R.id.nav_queries, R.id.nav_settings)
     private lateinit var clipboard: ClipboardManager
@@ -181,7 +194,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
-        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this, settingsAction = { id -> binding.topAppBar.menu.performIdentifierAction(id, 0) }) { destination ->
+        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this, chosenHost = { chosenManagementHost(dnsServerViewModel.allServers.value.orEmpty()) }, settingsAction = { id -> binding.topAppBar.menu.performIdentifierAction(id, 0) }) { destination ->
             binding.bottomNavigation.selectedItemId = mainTabIds[destination.coerceIn(0, 3)]
         }
         val params = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, 0).apply {
@@ -219,6 +232,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
 
         dnsServerViewModel.allServers.observe(this) { servers ->
             adapter.submitList(servers)
+            updateProfileSubtitle()
             if (managementVisible) managementPanel.update(servers, selectedMainTab)
             if (servers.isEmpty() && !managementVisible) {
                 binding.emptyView.visibility = View.VISIBLE
@@ -232,6 +246,8 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
             dnsServerViewModel.viewModelScope.launch {
                 val server = dnsServerViewModel.getById(id)
                 if (server != null) {
+                    selectionPrefs.edit().putInt("id", server.id).apply()
+                    updateProfileSubtitle()
                     val newFragment =
                         AddServerDialogFragment(server)
                     newFragment.show(supportFragmentManager, "edit_server")
@@ -416,6 +432,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
     }
 
     private fun showMainTab(index: Int) {
+        updateProfileSubtitle()
         selectedMainTab = index
         managementVisible = index != 0
         if (managementVisible) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
@@ -440,6 +457,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
 
     override fun onResume() {
         super.onResume()
+        if (::managementPanel.isInitialized) updateProfileSubtitle()
         if (::managementPanel.isInitialized && managementVisible) managementPanel.update(dnsServerViewModel.allServers.value.orEmpty(), selectedMainTab)
         if (selectedMainTab != 0) return
         // Check if WRITE_SECURE_SETTINGS is granted

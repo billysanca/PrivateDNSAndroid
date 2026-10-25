@@ -36,6 +36,18 @@ class DomainRulesRegressionTest {
         assertEquals(saved, ManagementRouting.effective("dns.example", saved))
         assertEquals("", saved.copy(mode=ManagementMode.NONE).pageUrl(1))
     }
+    @Test fun firstTabSelectionWinsAcrossAllTabsEvenWhenAndroidDnsDiffers() {
+        val ids = listOf(10, 20)
+        val hosts = listOf("a.example", "b.example")
+        assertEquals(1, ManagementRouting.chosenIndex(ids, hosts, 20, "hostname", "a.example"))
+        assertEquals(1, ManagementRouting.chosenIndex(ids, hosts, 20, "off", null))
+        assertEquals(1, ManagementRouting.chosenIndex(ids, listOf("a.example", "renamed.example"), 20, "off", null))
+    }
+    @Test fun removedSelectionNeverSilentlyUsesAnotherAccount() {
+        assertEquals(-1, ManagementRouting.chosenIndex(listOf(10), listOf("a.example"), 20, "hostname", "a.example"))
+        assertEquals(0, ManagementRouting.chosenIndex(listOf(10), listOf("a.example"), null, "hostname", "a.example"))
+        assertEquals(-1, ManagementRouting.chosenIndex(listOf(10), listOf("a.example"), null, "off", null))
+    }
     private class Fake : ReadTransport, DomainWriteTransport {
         val calls = mutableListOf<String>()
         var writes = 0

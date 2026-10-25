@@ -27,7 +27,7 @@ import ru.karasevm.privatednstoggle.model.DnsServer
 import ru.karasevm.privatednstoggle.util.PrivateDNSUtils
 
 /** Material 3 Views. Web settings remain independent of native provider setup and discovery. */
-class ManagementPanel(private val activity: AppCompatActivity, private val settingsAction: (Int) -> Unit = {}, private val navigate: (Int) -> Unit = {}) {
+class ManagementPanel(private val activity: AppCompatActivity, private val chosenHost: () -> String? = { PrivateDNSUtils.getPrivateProvider(activity.contentResolver) }, private val settingsAction: (Int) -> Unit = {}, private val navigate: (Int) -> Unit = {}) {
     val view = ScrollView(activity).apply { isFillViewport = true }
     private val column = column()
     private val store = ManagementStore(activity)
@@ -128,13 +128,13 @@ class ManagementPanel(private val activity: AppCompatActivity, private val setti
             button(empty, "Abrir aba DNS", true) { navigate(0) }
             return
         }
-        val active = PrivateDNSUtils.getPrivateProvider(activity.contentResolver)
-        val current = if (page == 3) selected ?: active else active
-        val activeIndex = if(page == 3) servers.indexOfFirst { it.server == current } else ManagementRouting.activeIndex(servers.map { it.server }, PrivateDNSUtils.getPrivateMode(activity.contentResolver), active)
-        if (page != 3 && (activeIndex < 0 || PrivateDNSUtils.getPrivateMode(activity.contentResolver) != "hostname")) {
+        val current = chosenHost()
+        val activeIndex = servers.indexOfFirst { it.server == current }
+        if (activeIndex < 0) {
+            if(page == 3) renderAppPreferences(column)
             val empty = card(column)
-            text(empty, "Nenhum DNS privado cadastrado está ativo", true)
-            text(empty, "Ative um endereço na primeira aba para consultar o provedor correspondente.")
+            text(empty, "Escolha o perfil na primeira aba", true)
+            text(empty, "Toque em um hostname na lista DNS. As outras abas usarão esse mesmo perfil, sem seletores próprios.")
             button(empty, "Abrir aba DNS", true) { navigate(0) }
             return
         }
@@ -234,8 +234,7 @@ class ManagementPanel(private val activity: AppCompatActivity, private val setti
                 } finally { progress.visibility = View.GONE }
             }
         }
-        if(page == 3) choice(column, "DNS / perfil selecionado", servers.map { if(it.label.isBlank()) it.server else "${it.label} · ${it.server}" }, initial, ::show)
-        if(page != 3) text(column, "DNS ativo · ${servers[initial].server}")
+        text(column, "DNS escolhido na primeira aba · ${servers[initial].server}")
         column.addView(detail)
         show(initial)
     }
@@ -254,7 +253,7 @@ class ManagementPanel(private val activity: AppCompatActivity, private val setti
                     "Privacidade" to ru.karasevm.privatednstoggle.R.id.privacy_policy,
                     "Licenças" to ru.karasevm.privatednstoggle.R.id.open_source_licenses
                 ).forEach { (label, id) -> button(preferences, label) { settingsAction(id) } }
-                text(preferences, "O seletor de Configurações edita conexões; Estatísticas e Consultas sempre seguem o DNS ativo.")
+                text(preferences, "Todas as abas usam o DNS escolhido na primeira aba. Para mudar de provedor, volte à aba DNS.")
                 button(preferences, "Encerrar sessões WebView") {
                     MaterialAlertDialogBuilder(activity).setTitle("Encerrar sessões incorporadas?")
                         .setMessage("Apagar cookies e armazenamento de todos os painéis WebView deste aplicativo? As sessões do navegador permanecem no navegador.")
@@ -335,11 +334,27 @@ class ManagementPanel(private val activity: AppCompatActivity, private val setti
                 text(entry, "${time.ifBlank { "Horário não informado" }} · ${query.status.ifBlank { "Status não informado" }}")
                 if(query.device.isNotBlank()) text(entry, "Dispositivo: ${query.device}")
                 text(entry, if(query.status.isBlank()) "? Status não informado" else if(query.blocked) "⛔ Bloqueada no registro" else "✓ Não bloqueada no registro")
-                if (config.provider == "nextdns" && runCatching { DomainPolicy.normalize(query.domain) }.isSuccess) {
-                    button(entry, "Bloquear domínio") { confirmRule(host, config, query.domain, false, entry) }
-                    button(entry, "Liberar domínio") { confirmRule(host, config, query.domain, true, entry) }
-                } else if (config.provider == "adguard") {
-                    button(entry, "Gerenciar regra no AdGuard") { openLink(ProviderSetup.dashboardUrl(config.provider, config.profile)) }
+                val canUseDomain = runCatching { DomainPolicy.normalize(query.domain) }.isSuccess
+                if(canUseDomain) {
+                    fun actions() {
+                        val native = config.provider == "nextdns"
+                        val labels = if(native) arrayOf("Bloquear domínio", "Liberar domínio", "Abrir painel oficial")
+                            else arrayOf("Gerenciar regra no painel oficial")
+                        MaterialAlertDialogBuilder(activity).setTitle(query.domain)
+                            .setItems(labels) { _, index ->
+                                if(native && index < 2) confirmRule(host, config, query.domain, index == 1, entry)
+                                else {
+                                    if(!native) MaterialAlertDialogBuilder(activity)
+                                        .setTitle("Gerenciar regra no provedor")
+                                        .setMessage("A API do AdGuard substitui a lista inteira de regras e não oferece adição individual com proteção contra alterações concorrentes. Para preservar suas regras, esta ação abre o painel oficial.")
+                                        .setPositiveButton("Abrir painel") { _, _ -> openWeb(config.copy(url = ProviderSetup.dashboardUrl(config.provider, config.profile))) }
+                                        .setNegativeButton("Cancelar", null).show()
+                                    else openWeb(config.copy(url = ProviderSetup.dashboardUrl(config.provider, config.profile)))
+                                }
+                            }.setNegativeButton("Cancelar", null).show()
+                    }
+                    button(entry, "Ações do domínio ⋮") { actions() }
+                    entry.setOnLongClickListener { actions(); true }
                 }
             }
         }
@@ -351,7 +366,7 @@ class ManagementPanel(private val activity: AppCompatActivity, private val setti
             filters.addView(chip)
         }
         parent.addView(filters)
-        text(parent, "Até 50 consultas recentes. A busca e os filtros se aplicam somente a esta primeira página.")
+        text(parent, "Até 50 consultas recentes. Busca e filtros são locais. Use Ações do domínio ou mantenha uma consulta pressionada para bloquear/liberar.")
         parent.addView(list)
         search.doAfterTextChanged { renderList() }
         renderList()

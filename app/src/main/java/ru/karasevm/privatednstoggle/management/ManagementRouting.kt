@@ -6,6 +6,10 @@ object ManagementRouting {
         if(mode != "hostname" || active.isNullOrBlank()) return -1
         return hosts.indexOfFirst { ProviderSetup.normalizedHost(it) == ProviderSetup.normalizedHost(active) }
     }
+    fun chosenIndex(ids: List<Int>, hosts: List<String>, selectedId: Int?, mode: String?, active: String?): Int {
+        require(ids.size == hosts.size)
+        return if(selectedId != null) ids.indexOf(selectedId) else activeIndex(hosts, mode, active)
+    }
     fun effective(host: String, saved: ManagementConfig): ManagementConfig {
         val detected = ProviderSetup.detect(host) ?: return saved
         val inferred = ProviderSetup.nextDnsProfile(host).orEmpty()

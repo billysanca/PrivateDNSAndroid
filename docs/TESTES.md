@@ -114,3 +114,23 @@ Sem contas reais e sem aparelho conectado, os itens de UI/rede acima continuam p
 - Assinatura v3 e alinhamento confirmados. Certificado SHA-256: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
 - SHA-256 APK: dd5b0f5af313c7be2dc4d63faef15f9ba9884ea7404185cf57360bed106f111f.
 - ADB sem aparelhos. Testes instrumentados compilados, não executados. UI e APIs com contas reais continuam pendentes. Nenhuma conta recebeu regras durante os testes automatizados.
+
+## Alpha 5 — seleção compartilhada e menu de consultas
+
+- JVM: 35 testes, 0 falhas/erros. Os dois novos testes verificam prioridade da escolha na primeira aba sobre o DNS do Android, uso com Android DNS desligado, renomeação pelo mesmo ID, exclusão sem escolher outra conta silenciosamente e fallback inicial para o DNS ativo.
+- Roteiro em aparelho: tocar no hostname na primeira aba, fechar o editor e conferir o mesmo perfil no cabeçalho e em Estatísticas, Consultas e Configurações. Nenhuma dessas abas pode oferecer seletor de DNS.
+- Selecionar A na primeira aba com Android configurado para B: as abas devem mostrar A sem mudar private_dns_mode/private_dns_specifier.
+- Fechar/reabrir o app: seleção deve persistir. Renomear o registro deve manter a escolha; excluir deve pedir nova seleção.
+- Em Consultas, botão Ações do domínio e toque longo no cartão devem apresentar o mesmo menu. NextDNS bloquear/liberar deve executar na interface nativa, com confirmação, sem abrir navegador. Cancelar não envia regra. Conferir indicadores e lista remota em perfil de teste.
+- No AdGuard, o menu deve explicar a limitação antes de abrir o painel, respeitando Custom Tabs/WebView salvo.
+- Os testes de UI e com contas reais continuam pendentes por ausência de aparelho/credenciais; não se declara validação visual sem execução.
+
+### Resultado final Alpha 5 — 25/10/2026
+
+- testDebugUnitTest, assembleRelease, assembleDebugAndroidTest e lintRelease: BUILD SUCCESSFUL.
+- JVM: 35 testes, 0 falhas/erros. Lint: 0 erros, 118 avisos; sem suprimir regras para aprovar o build.
+- Núcleo original de DNS, banco/hostnames, backups, Quick Settings e Shizuku: PASS em scripts/check-upstream.ps1.
+- APK release otimizado: 5.138.647 bytes, pacote io.github.billysanca.dnsmanager, versionCode 23, versionName 1.12.0-alpha.5; sem application-debuggable.
+- Assinatura v3 e alinhamento verificados; certificado SHA-256 preservado: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
+- SHA-256 APK: 2c711f5e2dd82fdad74b8b5d80ef594743e0ee11ec8565808bbd15b6a50cd242.
+- Testes instrumentados compilados, não executados em aparelho. UI, login/MFA web e APIs com contas reais continuam pendentes.
