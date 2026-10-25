@@ -42,6 +42,8 @@ data class ReadSection(val title: String, val json: String)
 interface DnsProvider {
     fun discover(hostname: String, key: String): DiscoveryResult
     val id: String
+    fun statistics(profile: String, key: String, now: Long = System.currentTimeMillis()): List<ReadSection> = read(profile, key, now)
+    fun queries(profile: String, key: String, now: Long = System.currentTimeMillis()): ReadSection = read(profile, key, now)[1]
     fun read(profile: String, key: String, now: Long = System.currentTimeMillis()): List<ReadSection>
 }
 object Providers {

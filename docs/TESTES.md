@@ -159,3 +159,34 @@ Sem contas reais e sem aparelho conectado, os itens de UI/rede acima continuam p
 - Assinatura v3 e alinhamento verificados; certificado SHA-256: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
 - SHA-256 APK: ea9c43b166592d842ed38edc9a33e12120ddedf6b74c3f8563cd34bd45a997e2.
 - Revisão visual, gestos físicos e atualização periódica com contas reais permanecem pendentes.
+
+## Alpha 7 — revisão de UX, temas e Tempo Real
+
+### Resultado final — 25/10/2026
+
+- testDebugUnitTest, assembleRelease, assembleDebug, assembleDebugAndroidTest e lintRelease: BUILD SUCCESSFUL.
+- JVM: 45 testes, 0 falhas/erros. A bateria adiciona decoder SSE, limites/deduplicação, cursor, buffer de 50 registros, leituras separadas de consultas/estatísticas, fallback de tema e cancelamento real da coleta com uma conexão HTTPS falsa.
+- LiveCancellationRegressionTest verifica fechamento da conexão ao cancelar, autenticação em cabeçalho e rejeição de perfil inválido antes de abrir conexão. Nenhuma chave ou conta real é usada.
+- Lint release: 0 erros, 127 avisos; sem supressões para aprovar o build.
+- Integridade de alternância, dados/hostnames, backups, Quick Settings e Shizuku: PASS em scripts/check-upstream.ps1. O adapter de UI é uma alteração deliberada para seleção/gestos/cores; o núcleo protegido permanece igual ao upstream.
+- APK release otimizado, não debuggable: 5.159.239 bytes. Pacote io.github.billysanca.dnsmanager; versionCode 25; versionName 1.13.0-alpha.7.
+- Assinatura v3 e alinhamento verificados. Certificado SHA-256 preservado: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
+- SHA-256 APK: 36607faecc543f312057a818cc89f6d7228744f37fdaacf8d0d6eb541ad0f433.
+- Manifesto e arquivos DEX foram conferidos: DesignPreviewActivity e a credencial sintética não estão no release. Fixtures com dados sintéticos ficam somente no source set debug.
+- Testes instrumentados e DesignVisualTest compilados, NÃO executados. Android Emulator 37.2.12 e imagem Android 35 AOSP ATD foram preparados no workspace; o diagnóstico de aceleração retornou 6. Tentativas sem aceleração encerraram com código 1 e não disponibilizaram dispositivo ADB. Configurações de virtualização/segurança do Windows não foram alteradas.
+- Revisão visual em Android, TalkBack, gestos físicos e contas reais permanecem pendentes. Nenhuma captura de Android validada foi produzida nesta entrega.
+
+### Executar em aparelho/emulador compatível
+
+1. Usar uma instalação debug separada (.dev), sem remover ou limpar a instalação release.
+2. Executar ./gradlew testDebugUnitTest connectedDebugAndroidTest com Android SDK/JDK configurados. Os testes usam fixtures; não fornecer chaves reais para capturar UI.
+3. DesignVisualTest abre DNS em claro/escuro/OLED, Estatísticas em claro, Consultas em escuro e Configurações em OLED/cores dinâmicas. Verifica menu ausente, resultados sintéticos e superfície preta no modo OLED. Capturas ficam no diretório externo screenshots do aplicativo debug.
+4. Repetir com fonte ampliada e TalkBack. Verificar rótulos da barra inferior, perfil selecionado, alvo de menu de 48 dp e texto completo em confirmação.
+5. Testar o app principal: um toque seleciona, toque longo edita, alça ordena. Alterar tema deve manter aba/hostnames/chaves/sessões. Preferências do alternador, importação/exportação, privacidade e licenças devem ser alcançáveis apenas pela aba Configurações, sem reticência no Toolbar.
+6. Estatísticas não pode mostrar controles de atualização nem criar timer. Consultas deve ler somente logs ao atualizar. Abrir Estatísticas não pode ler logs.
+7. Em um perfil NextDNS de teste, entrar em Tempo Real: ler snapshot e continuar pelo cursor SSE, sem duplicar ID. Parar ao trocar de aba/sair. Interrupção, MIME incorreto, HTTP 401/403/429 e payload inválido devem retornar a Manual preservando contexto.
+8. No AdGuard, Tempo Real deve identificar o polling de 5 s, sem chamar estatísticas/cotas no loop. Conferir 15/30/60 s.
+9. Bloquear/liberar continua exigindo confirmação individual. Tema, navegação e atualização nunca alteram DNS nem regras automaticamente.
+10. Atualizar sobre Alpha 6 sem desinstalar e conferir dados e certificado.
+
+Veja UX-REVIEW-ALPHA7.md para a análise e as referências primárias.

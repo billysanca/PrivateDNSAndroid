@@ -13,7 +13,7 @@ A navegação inferior flutuante e os cartões seguem o princípio do ADNS. A pr
 
 ## Instalar e atualizar
 
-[Baixe o APK otimizado no Releases](https://github.com/billysanca/PrivateDNSAndroid/releases/tag/v1.12.0-alpha.6).
+[Baixe o APK otimizado no Releases](https://github.com/billysanca/PrivateDNSAndroid/releases/tag/v1.13.0-alpha.7).
 
 - Android 9 ou posterior; APK release sem debug.
 - Nome: **Nexo DNS**. Pacote preservado: `io.github.billysanca.dnsmanager`.
@@ -24,12 +24,14 @@ Quick Settings e Shizuku permanecem disponíveis. Navegar e consultar o provedor
 
 ## Conectar o provedor
 
-Use Configurações, cole a chave de API e toque em Salvar. A descoberta do perfil/servidor acontece automaticamente; ambiguidades exigem escolha na lista. Há links oficiais para obter a chave e preencher o que não puder ser descoberto. Depois da conexão, Estatísticas e Consultas carregam ao abrir. Um toque no hostname seleciona o perfil usado pelas demais abas, sem seletores próprios; toque longo abre a edição. Bloquear/liberar NextDNS fica no menu ⋮ à direita da consulta ou no toque longo. As páginas nativas oferecem atualização manual, contínua (polling de 5 s) ou a cada 15/30/60 s em primeiro plano.
+Use Configurações, cole a chave de API e toque em Salvar. A descoberta do perfil/servidor acontece automaticamente; ambiguidades exigem escolha na lista. Há links oficiais para obter a chave e preencher o que não puder ser descoberto. Depois da conexão, Estatísticas e Consultas carregam ao abrir. Um toque no hostname seleciona o perfil usado pelas demais abas, sem seletores próprios; toque longo abre a edição. Bloquear/liberar NextDNS fica no menu ⋮ à direita da consulta ou no toque longo. Somente Consultas oferece atualização: manual, Tempo Real (SSE NextDNS; polling de 5 s AdGuard) ou a cada 15/30/60 s em primeiro plano. Configurações reúne temas claro, escuro, preto OLED e cores dinâmicas Material You em aparelhos compatíveis.
 
 APIs oficiais NextDNS e AdGuard DNS para estatísticas e consultas. NextDNS também permite adicionar um domínio à lista de bloqueio/liberação, após confirmação individual. No AdGuard, regras são gerenciadas no painel oficial. Qualquer provedor pode ter um painel HTTPS associado ao hostname, aberto por Custom Tabs ou WebView opcional. Chaves são cifradas com Android Keystore; senhas dos painéis não são capturadas. Não há troca automática. As únicas escritas nativas são as ações individuais de domínio no NextDNS.
 
 ## Documentação e testes
 
+- [Alpha 7: revisão de UX, temas e Tempo Real](docs/NEXO-ALPHA7.md)
+- [Análise de interface e decisões](docs/UX-REVIEW-ALPHA7.md)
 - [Alpha 6: gestos, consultas compactas e atualização periódica](docs/NEXO-ALPHA6.md)
 - [Alpha 5: seleção compartilhada e ações por menu/toque longo](docs/NEXO-ALPHA5.md)
 - [Alpha 4: DNS ativo, páginas web e regras confirmadas](docs/NEXO-ALPHA4.md)

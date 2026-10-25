@@ -9,7 +9,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textview.MaterialTextView
 
 /** No JavaScript bridges, password interception, TLS bypass, file access or native API credentials. */
-class ManagementWebActivity : AppCompatActivity() {
+class ManagementWebActivity : ru.karasevm.privatednstoggle.ui.NexoActivity() {
     private lateinit var web: WebView
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)

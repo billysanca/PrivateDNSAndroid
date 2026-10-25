@@ -49,7 +49,7 @@ import ru.karasevm.privatednstoggle.util.PreferenceHelper.dns_servers
 import ru.karasevm.privatednstoggle.util.ShizukuUtil.grantPermissionWithShizuku
 
 
-class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogListener,
+class MainActivity : NexoActivity(), AddServerDialogFragment.NoticeDialogListener,
     DeleteServerDialogFragment.NoticeDialogListener, Shizuku.OnRequestPermissionResultListener {
 
     private lateinit var linearLayoutManager: LinearLayoutManager
@@ -68,11 +68,17 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         return servers.getOrNull(index)?.server
     }
     private fun updateProfileSubtitle() {
+        if(::adapter.isInitialized) {
+            val servers = dnsServerViewModel.allServers.value.orEmpty()
+            adapter.selectedId = if(selectionPrefs.contains("id")) selectionPrefs.getInt("id", 0)
+                else servers.firstOrNull { it.server == chosenManagementHost(servers) }?.id
+        }
         binding.topAppBar.subtitle = chosenManagementHost(dnsServerViewModel.allServers.value.orEmpty())
             ?.let { "Perfil selecionado · $it" } ?: "Escolha um perfil na aba DNS"
     }
     private var selectedMainTab = 0
     private val mainTabIds = intArrayOf(R.id.nav_dns, R.id.nav_stats, R.id.nav_queries, R.id.nav_settings)
+    private lateinit var settingsPopup: androidx.appcompat.widget.PopupMenu
     private lateinit var clipboard: ClipboardManager
     private val dnsServerViewModel: DnsServerViewModel by viewModels { DnsServerViewModelFactory((application as PrivateDNSApp).repository) }
 
@@ -195,7 +201,8 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
-        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this, chosenHost = { chosenManagementHost(dnsServerViewModel.allServers.value.orEmpty()) }, settingsAction = { id -> binding.topAppBar.menu.performIdentifierAction(id, 0) }) { destination ->
+        settingsPopup = androidx.appcompat.widget.PopupMenu(this, binding.topAppBar).apply { inflate(R.menu.menu_main) }
+        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this, chosenHost = { chosenManagementHost(dnsServerViewModel.allServers.value.orEmpty()) }, settingsAction = { id -> settingsPopup.menu.performIdentifierAction(id, 0) }) { destination ->
             binding.bottomNavigation.selectedItemId = mainTabIds[destination.coerceIn(0, 3)]
         }
         val params = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, 0).apply {
@@ -263,7 +270,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding.recyclerView.adapter = adapter
         itemTouchHelper.attachToRecyclerView(binding.recyclerView)
 
-        binding.topAppBar.setOnMenuItemClickListener { item ->
+        settingsPopup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.privacy_policy -> {
                     com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Privacidade · Nexo DNS")
@@ -319,12 +326,12 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
                 }
 
                 R.id.import_settings_clipboard -> {
-                    val clipData = clipboard.primaryClip?.getItemAt(0)
+                    val clipData = clipboard.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)
                     val textData = clipData?.text
 
                     if (textData != null) {
                         importSettings(textData.toString())
-                    }
+                    } else Toast.makeText(this, "Copie um backup em texto antes de importar.", Toast.LENGTH_LONG).show()
                     true
                 }
 
@@ -390,19 +397,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         var permissionDialog: AlertDialog? = null
         val dialogView = ComposeView(this).apply {
             setContent {
-                val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (isSystemInDarkTheme())
-                        dynamicDarkColorScheme(applicationContext)
-                    else
-                        dynamicLightColorScheme(applicationContext)
-                } else {
-                    if (isSystemInDarkTheme()) {
-                        darkColorScheme()
-                    } else {
-                        lightColorScheme()
-                    }
-                }
-
+                val colorScheme = nexoColors(this@MainActivity)
                 MaterialTheme(colorScheme = colorScheme) {
                     PermissionExplanationDialog(
                         onDismiss = {
@@ -424,11 +419,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
                 window?.setBackgroundDrawableResource(android.R.color.transparent)
             }
     }
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        if(menu != null) for(i in 0 until menu.size()) menu.getItem(i).isVisible = false
-        return true
-    }
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean = false
 
     private fun showMainTab(index: Int) {
         updateProfileSubtitle()
@@ -483,23 +474,6 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
                 if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) {
                     showPermissionDialog()
                 }
-            }
-        }
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (!hasFocus) {
-            // Gets the ID of the "paste" menu item.
-            val pasteItem = binding.topAppBar.menu.findItem(R.id.import_settings_clipboard)
-
-            // If the clipboard doesn't contain data, disable the paste menu item.
-            // If it does contain data, decide whether you can handle the data.
-            pasteItem.isEnabled = when {
-                !clipboard.hasPrimaryClip() -> false
-                !(clipboard.primaryClipDescription?.hasMimeType(MIMETYPE_TEXT_PLAIN))!! -> false
-                else -> true
-
             }
         }
     }

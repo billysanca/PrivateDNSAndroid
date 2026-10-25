@@ -23,17 +23,21 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.textview.MaterialTextView
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import ru.karasevm.privatednstoggle.model.DnsServer
 import ru.karasevm.privatednstoggle.util.PrivateDNSUtils
 
 /** Material 3 Views. Web settings remain independent of native provider setup and discovery. */
-class ManagementPanel(private val activity: AppCompatActivity, private val chosenHost: () -> String? = { PrivateDNSUtils.getPrivateProvider(activity.contentResolver) }, private val settingsAction: (Int) -> Unit = {}, private val navigate: (Int) -> Unit = {}) {
+class ManagementPanel(private val activity: AppCompatActivity, private val chosenHost: () -> String? = { PrivateDNSUtils.getPrivateProvider(activity.contentResolver) }, private val settingsAction: (Int) -> Unit = {}, private val providerFactory: (String) -> DnsProvider = { Providers.get(it) }, private val credentials: ((String, String) -> String?)? = null, private val navigate: (Int) -> Unit = {}) {
     val view = ScrollView(activity).apply { isFillViewport = true }
     private val column = column()
     private val store = ManagementStore(activity)
     private val vault = ApiKeyVault(activity)
     private var job: Job? = null
     private var refreshMode = 0
+    private var filterHost: String? = null
+    private var querySearch = ""
+    private var queryFilter = 0
     private var selected: String? = null
     private var page = 3
     private var lastServers = emptyList<DnsServer>()
@@ -59,11 +63,35 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
             it.setOnClickListener { action() }
             parent.addView(it)
         }
+    private fun preference(parent: LinearLayout, title: String, summary: String? = null, action: () -> Unit) {
+        val row = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            minimumHeight = dp(56)
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(6), dp(4), dp(6))
+            val ripple = android.util.TypedValue()
+            activity.theme.resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)
+            setBackgroundResource(ripple.resourceId)
+            isFocusable = true
+            setOnClickListener { action() }
+        }
+        text(row, title).apply {
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleMedium)
+            setPadding(0, 0, 0, 0)
+        }
+        if(summary != null) text(row, summary).apply {
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+            setTextColor(com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant))
+            setPadding(0, dp(2), 0, 0)
+        }
+        parent.addView(row)
+        parent.addView(com.google.android.material.divider.MaterialDivider(activity))
+    }
     private fun card(parent: LinearLayout): LinearLayout {
         val content = column()
         parent.addView(MaterialCardView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) }
-            radius = dp(28).toFloat()
+            radius = dp(20).toFloat()
             cardElevation = 0f
             strokeWidth = 0
             addView(content)
@@ -107,6 +135,7 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
         parent.addView(layout)
         return layout to input
     }
+    private fun readKey(host: String, provider: String): String? = if(credentials != null) credentials.invoke(host, provider) else vault.get("$host:$provider")
     private fun providerName(id: String) = if (id == "adguard") "AdGuard DNS" else "NextDNS"
     private fun errorMessage(e: Exception): String = when (e) {
         is ApiFailure -> e.message!!
@@ -116,11 +145,12 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
     fun update(servers: List<DnsServer>, destination: Int = page, userNavigation: Boolean = false) {
         if (userNavigation) openedWeb = null
         page = destination.coerceIn(1, 3)
+        if(page != 2) refreshMode = 0
         lastServers = servers
         job?.cancel()
         column.removeAllViews()
-        text(column, when(page) { 1 -> "Estatísticas"; 2 -> "Consultas"; else -> "Configurações" }, true).textSize = 32f
         text(column, when(page) { 1 -> "Seu DNS em números · últimas 24 horas"; 2 -> "Atividade recente do provedor · últimas 24 horas"; else -> "Contas, painéis e preferências do Nexo DNS" })
+        if(page == 3) renderAppearance(column)
         if (servers.isEmpty()) {
             if(page == 3) renderAppPreferences(column)
             val empty = card(column)
@@ -140,7 +170,7 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
             return
         }
         val initial = activeIndex.coerceAtLeast(0)
-        val detail = column()
+        val detail = column().apply { setPadding(0, 0, 0, 0) }
         fun configure(host: String) { edit(host) {
             cache.clear()
             val destination = if(store.get(host).mode == ManagementMode.API) 1 else 3
@@ -154,16 +184,19 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
             val config = ManagementRouting.effective(host, store.get(host))
             val context = card(detail)
             text(context, if(config.mode == ManagementMode.API) providerName(config.provider) else if(config.mode == ManagementMode.WEB) "Painel web" else "Conta não conectada", true)
-            text(context, if(config.mode == ManagementMode.API) "${config.profile} · $host" else host)
+            text(context, if(config.mode == ManagementMode.API) "Perfil ${config.profile}" else host)
             if (page == 3) {
                 button(context, if(config.mode == ManagementMode.NONE) "Conectar conta ou painel" else "Gerenciar conexão", true) { configure(host) }
                 if (config.mode == ManagementMode.API) {
-                    button(context, "Estatísticas do DNS ativo") { navigate(1) }
-                    button(context, "Criar ou gerenciar chave no site") { openLink(ProviderSetup.keyUrl(config.provider)) }
-                    button(context, "Abrir perfil no painel oficial") { openLink(ProviderSetup.dashboardUrl(config.provider, config.profile)) }
-                    button(context, "Desconectar chave neste aparelho") {
-                        job?.cancel(); cache.clear(); vault.remove("$host:${config.provider}")
-                        text(context, "Chave local removida. A revogação remota é feita no site oficial.")
+                    preference(context, "Chave de API", "Criar ou gerenciar no site oficial") { openLink(ProviderSetup.keyUrl(config.provider)) }
+                    preference(context, "Painel oficial", "Abrir o perfil no navegador") { openLink(ProviderSetup.dashboardUrl(config.provider, config.profile)) }
+                    preference(context, "Remover chave deste aparelho", "A revogação remota é feita no site oficial") {
+                        MaterialAlertDialogBuilder(activity).setTitle("Remover a chave local?")
+                            .setMessage("As consultas serão desconectadas neste aparelho. A chave não será revogada na conta do provedor.")
+                            .setPositiveButton("Remover") { _, _ ->
+                                job?.cancel(); cache.clear(); vault.remove("$host:${config.provider}")
+                                update(lastServers, page)
+                            }.setNegativeButton("Cancelar", null).show()
                     }
                 } else if(config.mode == ManagementMode.WEB) {
                     text(context, config.url)
@@ -188,27 +221,39 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
                 } else text(context, "Informe as URLs HTTPS das páginas em Configurações para abri-las automaticamente.")
                 return
             }
-            if (!ManagementPolicy.validProfile(config.profile) || runCatching { vault.get("$host:${config.provider}") }.getOrNull().isNullOrBlank()) {
+            if (!ManagementPolicy.validProfile(config.profile) || runCatching { readKey(host, config.provider) }.getOrNull().isNullOrBlank()) {
                 text(context, "API selecionada automaticamente. Conecte a chave para consultar este DNS.")
                 button(context, "Conectar API", true) { configure(host) }
                 return
             }
-            val results = column()
+            val results = column().apply { setPadding(0, 0, 0, 0) }
             val progress = LinearProgressIndicator(activity).apply { isIndeterminate = true }
             detail.addView(progress)
             detail.addView(results)
-            button(context, "Atualizar agora") { cache.clear(); update(lastServers, page) }
-            val refresh = choice(context, "Atualização automática", RefreshPolicy.labels, refreshMode) {
-                refreshMode = it
-                cache.clear()
-                update(lastServers, page)
+            var refresh: Choice? = null
+            if(page == 2) {
+                val controls = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
+                context.addView(controls)
+                val modeBox = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
+                controls.addView(modeBox, LinearLayout.LayoutParams(0, -2, 1f))
+                refresh = choice(modeBox, "Atualização", RefreshPolicy.labels, refreshMode) {
+                    refreshMode = it
+                    update(lastServers, page)
+                }
+                val refreshButton = MaterialButton(activity, null, com.google.android.material.R.attr.materialIconButtonStyle).apply {
+                    icon = androidx.appcompat.content.res.AppCompatResources.getDrawable(activity, ru.karasevm.privatednstoggle.R.drawable.ic_refresh)
+                    contentDescription = "Atualizar consultas"
+                    setOnClickListener { update(lastServers, page) }
+                }
+                controls.addView(refreshButton, LinearLayout.LayoutParams(dp(48), dp(48)).apply { leftMargin = dp(8); topMargin = dp(12) })
+                if(refreshMode == 1) text(context, if(config.provider == "nextdns") "Tempo Real transmite consultas pela API oficial. Ativo somente enquanto esta tela estiver aberta."
+                    else "Tempo Real consulta este provedor a cada 5 s. Novos registros dependem da API.")
             }
-            text(context, "Contínuo consulta a API a cada 5 segundos, somente nesta aba e com o app aberto.")
             val requestKey = "$host|${config.provider}|${config.profile}"
-            val updateLabel = text(context, "Aguardando atualização…")
+            val updateLabel = text(context, "Conectando ao provedor…")
             fun showTime() {
                 updateTimes[requestKey]?.let {
-                    updateLabel.text = "Atualizado às " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(it))
+                    updateLabel.text = "Atualizado às " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(it))
                 }
             }
             var updateQueries: ((List<ReadSection>) -> Unit)? = null
@@ -220,76 +265,114 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
                 } else if(updateQueries == null) {
                     results.removeAllViews()
                     updateQueries = renderQueries(results, host, config, sections)
-                } else updateQueries?.invoke(sections)
+                } else updateQueries.invoke(sections)
                 view.post { if(selected == host && view.isShown) view.scrollTo(0, scroll) }
             }
-            val existing = cache.get(requestKey, android.os.SystemClock.elapsedRealtime())
-            if (existing != null && refreshMode == 0) {
+            val existing = if(page == 1) cache.get(requestKey, android.os.SystemClock.elapsedRealtime()) else null
+            if(existing != null) {
                 progress.visibility = View.GONE
                 showTime()
-                runCatching { render(existing) }.onFailure { text(results, "Resposta incompatível. Atualize os dados ou confira a conexão.") }
+                runCatching { render(existing) }.onFailure { text(results, "Resposta incompatível. Confira a conexão.") }
                 return
             }
             job = activity.lifecycleScope.launch {
                 while(isActive) {
-                  while(writing || !activity.hasWindowFocus()) delay(300)
-                  progress.visibility = View.VISIBLE
-                  try {
-                    val sections = withContext(Dispatchers.IO) {
-                        val token = vault.get("$host:${config.provider}") ?: error("Conecte a conta em Configurações")
-                        Providers.get(config.provider).read(config.profile, token)
-                    }
                     while(writing || !activity.hasWindowFocus()) delay(300)
-                    render(sections)
-                    cache.put(requestKey, sections, android.os.SystemClock.elapsedRealtime())
-                    updateTimes[requestKey] = System.currentTimeMillis(); showTime()
-                } catch (e: CancellationException) { throw e }
-                catch (e: Exception) {
-                    results.removeAllViews()
-                    val error = card(results)
-                    text(error, "Não foi possível atualizar", true)
-                    text(error, errorMessage(e))
-                    refreshMode = 0; refresh.index = 0; refresh.input.setText(RefreshPolicy.labels[0], false)
-                    button(error, "Revisar conexão") { configure(host) }
-                  } finally { progress.visibility = View.GONE }
-                  val interval = RefreshPolicy.interval(refreshMode)
-                  if(interval == 0L) break
-                  delay(interval)
-                  while(writing) delay(500)
+                    progress.visibility = View.VISIBLE
+                    try {
+                        val token = withContext(Dispatchers.IO) { readKey(host, config.provider) ?: error("Reconecte a conta") }
+                        val sections = withContext(Dispatchers.IO) {
+                            val provider = providerFactory(config.provider)
+                            if(page == 2) listOf(ReadSection("", ""), provider.queries(config.profile, token), ReadSection("", ""))
+                            else provider.statistics(config.profile, token)
+                        }
+                        while(writing || !activity.hasWindowFocus()) delay(300)
+                        render(sections)
+                        if(page == 1) cache.put(requestKey, sections, android.os.SystemClock.elapsedRealtime())
+                        updateTimes[requestKey] = System.currentTimeMillis()
+                        showTime()
+                        progress.visibility = View.GONE
+                        if(page == 2 && refreshMode == 1 && config.provider == "nextdns") {
+                            updateLabel.text = "Conectando ao Tempo Real…"
+                            NextDnsLive().snapshots(config.profile, token, sections[1].json).collect { snapshot ->
+                                while(writing || !activity.hasWindowFocus()) delay(300)
+                                render(listOf(ReadSection("", ""), ReadSection("Consultas ao vivo", snapshot), ReadSection("", "")))
+                                updateLabel.text = "● Ao vivo · " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.MEDIUM).format(java.util.Date())
+                                delay(250)
+                            }
+                        }
+                    } catch(e: CancellationException) { throw e }
+                    catch(e: Exception) {
+                        refreshMode = 0
+                        refresh?.let { it.index = 0; it.input.setText(RefreshPolicy.labels[0], false) }
+                        updateLabel.text = "Atualização interrompida"
+                        val error = card(results)
+                        text(error, errorMessage(e))
+                        button(error, "Revisar conexão") { configure(host) }
+                    } finally { progress.visibility = View.GONE }
+                    val interval = if(page == 2) RefreshPolicy.interval(refreshMode) else 0L
+                    if(interval == 0L) break
+                    delay(interval)
                 }
             }
         }
-        text(column, "DNS escolhido na primeira aba · ${servers[initial].server}")
         column.addView(detail)
         show(initial)
     }
+    private fun renderAppearance(parent: LinearLayout) {
+        val box = card(parent)
+        text(box, "Aparência", true)
+        val settings = ru.karasevm.privatednstoggle.ui.ThemeSettings
+        val modes = ru.karasevm.privatednstoggle.ui.ThemeMode.entries
+        choice(box, "Tema", listOf("Usar tema do celular", "Claro", "Escuro", "Preto OLED"), settings.mode(activity).ordinal) { index ->
+            settings.save(activity, modes[index], settings.dynamic(activity))
+            settings.apply(activity)
+        }
+        val dynamic = com.google.android.material.materialswitch.MaterialSwitch(activity).apply {
+            text = "Cores do celular · Material You"
+            isChecked = settings.dynamic(activity)
+            isEnabled = com.google.android.material.color.DynamicColors.isDynamicColorAvailable()
+            minimumHeight = dp(48)
+            setOnCheckedChangeListener { _, checked ->
+                settings.save(activity, settings.mode(activity), checked)
+                activity.recreate()
+            }
+        }
+        box.addView(dynamic, LinearLayout.LayoutParams(-1, -2))
+        text(box, if(dynamic.isEnabled) "As cores de destaque acompanham o papel de parede. O tema define a luminosidade."
+            else "Cores dinâmicas exigem Android 12 ou posterior e um aparelho compatível. A paleta Nexo permanece disponível.")
+    }
     private fun renderAppPreferences(parent: LinearLayout) {
-                val preferences = card(parent)
-                text(preferences, "Aplicativo", true)
-                button(preferences, "Preferências do alternador DNS") {
-                    ru.karasevm.privatednstoggle.ui.OptionsDialogFragment().show(activity.supportFragmentManager, "dns_options")
-                }
-                listOf(
-                    "Importar de arquivo" to ru.karasevm.privatednstoggle.R.id.import_settings_file,
-                    "Importar da área de transferência" to ru.karasevm.privatednstoggle.R.id.import_settings_clipboard,
-                    "Exportar para arquivo" to ru.karasevm.privatednstoggle.R.id.export_settings_file,
-                    "Copiar backup" to ru.karasevm.privatednstoggle.R.id.export_settings_clipboard,
-                    "Compartilhar backup" to ru.karasevm.privatednstoggle.R.id.export_settings_share,
-                    "Privacidade" to ru.karasevm.privatednstoggle.R.id.privacy_policy,
-                    "Licenças" to ru.karasevm.privatednstoggle.R.id.open_source_licenses
-                ).forEach { (label, id) -> button(preferences, label) { settingsAction(id) } }
-                text(preferences, "Todas as abas usam o DNS escolhido na primeira aba. Para mudar de provedor, volte à aba DNS.")
-                button(preferences, "Encerrar sessões WebView") {
-                    MaterialAlertDialogBuilder(activity).setTitle("Encerrar sessões incorporadas?")
-                        .setMessage("Apagar cookies e armazenamento de todos os painéis WebView deste aplicativo? As sessões do navegador permanecem no navegador.")
-                        .setPositiveButton("Apagar") { _, _ ->
-                            android.webkit.CookieManager.getInstance().removeAllCookies {
-                                android.webkit.CookieManager.getInstance().flush()
-                                android.webkit.WebStorage.getInstance().deleteAllData()
-                                Toast.makeText(activity, "Sessões WebView removidas", Toast.LENGTH_SHORT).show()
-                            }
-                        }.setNegativeButton("Cancelar", null).show()
-                }
+        val preferences = card(parent)
+        text(preferences, "Aplicativo", true)
+        preference(preferences, "Alternador de DNS", "Preferências originais, Quick Settings e Shizuku") {
+            ru.karasevm.privatednstoggle.ui.OptionsDialogFragment().show(activity.supportFragmentManager, "dns_options")
+        }
+        preference(preferences, "Importar hostnames", "Arquivo JSON ou área de transferência") {
+            MaterialAlertDialogBuilder(activity).setTitle("Importar hostnames")
+                .setItems(arrayOf("Arquivo", "Área de transferência")) { _, index ->
+                    settingsAction(if(index == 0) ru.karasevm.privatednstoggle.R.id.import_settings_file else ru.karasevm.privatednstoggle.R.id.import_settings_clipboard)
+                }.setNegativeButton("Cancelar", null).show()
+        }
+        preference(preferences, "Exportar hostnames", "Chaves de API e sessões não entram no backup") {
+            val ids = intArrayOf(ru.karasevm.privatednstoggle.R.id.export_settings_file, ru.karasevm.privatednstoggle.R.id.export_settings_clipboard, ru.karasevm.privatednstoggle.R.id.export_settings_share)
+            MaterialAlertDialogBuilder(activity).setTitle("Exportar hostnames")
+                .setItems(arrayOf("Salvar arquivo", "Copiar", "Compartilhar")) { _, index -> settingsAction(ids[index]) }
+                .setNegativeButton("Cancelar", null).show()
+        }
+        preference(preferences, "Encerrar sessões WebView", "Remove cookies de todos os painéis incorporados") {
+            MaterialAlertDialogBuilder(activity).setTitle("Encerrar sessões incorporadas?")
+                .setMessage("Apagar cookies e armazenamento dos painéis WebView? As sessões do navegador permanecem no navegador.")
+                .setPositiveButton("Apagar") { _, _ ->
+                    android.webkit.CookieManager.getInstance().removeAllCookies {
+                        android.webkit.CookieManager.getInstance().flush()
+                        android.webkit.WebStorage.getInstance().deleteAllData()
+                        Toast.makeText(activity, "Sessões WebView removidas", Toast.LENGTH_SHORT).show()
+                    }
+                }.setNegativeButton("Cancelar", null).show()
+        }
+        preference(preferences, "Privacidade") { settingsAction(ru.karasevm.privatednstoggle.R.id.privacy_policy) }
+        preference(preferences, "Licenças de código aberto") { settingsAction(ru.karasevm.privatednstoggle.R.id.open_source_licenses) }
     }
     private fun number(value: Long) = java.text.NumberFormat.getIntegerInstance().format(value)
     private fun metric(parent: LinearLayout, title: String, value: Long) {
@@ -342,17 +425,28 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
         }
     }
     private fun renderQueries(parent: LinearLayout, host: String, config: ManagementConfig, sections: List<ReadSection>): (List<ReadSection>) -> Unit {
-        var queries = DashboardData.queries(config.provider, sections[1].json)
-        val (_, search) = field(parent, "Buscar domínio nestas consultas")
+        var queries = DashboardData.queries(config.provider, sections[1].json).take(50)
+        if(filterHost != host) { filterHost = host; querySearch = ""; queryFilter = 0 }
+        val (_, search) = field(parent, "Buscar domínio", querySearch)
         val filters = com.google.android.material.chip.ChipGroup(activity).apply { isSingleSelection = true; isSelectionRequired = true }
-        var filter = 0
+        var filter = queryFilter
         val list = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
+        var rowCache = mutableMapOf<DashboardQuery, java.util.ArrayDeque<Pair<LinearLayout, com.google.android.material.divider.MaterialDivider>>>()
         fun renderList() {
+            val nextCache = mutableMapOf<DashboardQuery, java.util.ArrayDeque<Pair<LinearLayout, com.google.android.material.divider.MaterialDivider>>>()
             list.removeAllViews()
             val needle = search.text.toString().trim()
             val matching = queries.filter { it.domain.contains(needle, true) && (filter == 0 || (filter == 1 && it.blocked) || (filter == 2 && !it.blocked)) }
             if(matching.isEmpty()) text(list, if(queries.isEmpty()) "Nenhuma consulta no período ou registro desativado no provedor." else "Nenhuma consulta corresponde ao filtro.")
             matching.forEachIndexed { index, query ->
+                val cached = rowCache[query]?.pollFirst()
+                if(cached != null) {
+                    cached.first.setBackgroundColor(com.google.android.material.color.MaterialColors.getColor(cached.first,
+                        if(index % 2 == 0) com.google.android.material.R.attr.colorSurfaceContainerLow else com.google.android.material.R.attr.colorSurfaceContainer))
+                    list.addView(cached.first); list.addView(cached.second)
+                    nextCache.getOrPut(query) { java.util.ArrayDeque() }.add(cached)
+                    return@forEachIndexed
+                }
                 val entry = LinearLayout(activity).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(12), dp(4), dp(4), dp(4))
@@ -404,24 +498,27 @@ class ManagementPanel(private val activity: AppCompatActivity, private val chose
                     menu.setOnClickListener { actions() }
                     entry.setOnLongClickListener { actions(); true }
                 } else menu.visibility = View.INVISIBLE
-                list.addView(com.google.android.material.divider.MaterialDivider(activity).apply {
+                val divider = com.google.android.material.divider.MaterialDivider(activity).apply {
                     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                }, LinearLayout.LayoutParams(-1, dp(1)))
+                }
+                list.addView(divider, LinearLayout.LayoutParams(-1, dp(1)))
+                nextCache.getOrPut(query) { java.util.ArrayDeque() }.add(entry to divider)
             }
+            rowCache = nextCache
         }
         listOf("Todas", "Bloqueadas", "Outras").forEachIndexed { index, label ->
             val chip = com.google.android.material.chip.Chip(activity).apply {
-                id = View.generateViewId(); text = label; isCheckable = true; isChecked = index == 0
-                setOnCheckedChangeListener { _, checked -> if(checked) { filter = index; renderList() } }
+                id = View.generateViewId(); text = label; isCheckable = true; isChecked = index == filter
+                setOnCheckedChangeListener { _, checked -> if(checked) { filter = index; queryFilter = index; renderList() } }
             }
             filters.addView(chip)
         }
         parent.addView(filters)
         text(parent, "Até 50 consultas recentes. Busca e filtros são locais. Use ⋮ à direita ou toque longo para bloquear/liberar.")
         parent.addView(list)
-        search.doAfterTextChanged { renderList() }
+        search.doAfterTextChanged { querySearch = it.toString(); renderList() }
         renderList()
-        return { latest -> queries = DashboardData.queries(config.provider, latest[1].json); renderList() }
+        return { latest -> queries = DashboardData.queries(config.provider, latest[1].json).take(50); renderList() }
     }
 
     private var writing = false
@@ -456,7 +553,7 @@ Adicionar à ${if(allow) "Allowlist" else "Denylist"}. A regra afeta todos os di
                 }
             }.show()
     }
-    fun suspendReading() { job?.cancel(); refreshMode = 0; cache.clear(); column.removeAllViews() }
+    fun suspendReading() { job?.cancel(); refreshMode = 0; querySearch = ""; queryFilter = 0; cache.clear(); column.removeAllViews() }
     private fun openLink(url: String) {
         if (!ManagementPolicy.validUrl(url)) return
         runCatching { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(activity, url.toUri()) }

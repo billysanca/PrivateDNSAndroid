@@ -28,6 +28,16 @@ class ServerListRecyclerAdapter(private val showDragHandle: Boolean) :
         return items.size
     }
 
+    var selectedId: Int? = null
+        set(value) {
+            if(field == value) return
+            val previous = field
+            field = value
+            listOf(previous, value).forEach { id ->
+                val index = items.indexOfFirst { it.id == id }
+                if(index >= 0) notifyItemChanged(index)
+            }
+        }
     var onItemClick: ((Int) -> Unit)? = null
     var onItemLongClick: ((Int) -> Unit)? = null
     var onDragStart: ((DnsServerViewHolder) -> Unit)? = null
@@ -44,6 +54,18 @@ class ServerListRecyclerAdapter(private val showDragHandle: Boolean) :
         }
         holder.serverTextView.text = item.server
         holder.id = item.id
+        val selected = item.id == selectedId
+        holder.itemView.isSelected = selected
+        val card = holder.itemView as com.google.android.material.card.MaterialCardView
+        card.setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(card,
+            if(selected) com.google.android.material.R.attr.colorPrimaryContainer else com.google.android.material.R.attr.colorSurfaceContainerLow))
+        card.strokeWidth = if(selected) (2 * card.resources.displayMetrics.density).toInt() else 0
+        card.strokeColor = com.google.android.material.color.MaterialColors.getColor(card, androidx.appcompat.R.attr.colorPrimary)
+        val foreground = com.google.android.material.color.MaterialColors.getColor(card,
+            if(selected) com.google.android.material.R.attr.colorOnPrimaryContainer else com.google.android.material.R.attr.colorOnSurface)
+        holder.serverTextView.setTextColor(foreground)
+        holder.labelTextView.setTextColor(foreground)
+        holder.itemView.contentDescription = listOf(item.label, item.server, if(selected) "Selecionado" else "", "Toque para selecionar. Segure para editar.").filter { it.isNotBlank() }.joinToString(". ")
         if (item.enabled) {
             holder.labelTextView.alpha = 1f
             holder.serverTextView.alpha = 1f

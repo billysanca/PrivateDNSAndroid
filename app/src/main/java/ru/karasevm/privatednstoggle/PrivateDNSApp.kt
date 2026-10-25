@@ -13,7 +13,12 @@ class PrivateDNSApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        DynamicColors.applyToActivitiesIfAvailable(this)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+            ru.karasevm.privatednstoggle.ui.ThemeSettings.night(ru.karasevm.privatednstoggle.ui.ThemeSettings.mode(this)))
+        DynamicColors.applyToActivitiesIfAvailable(this,
+            com.google.android.material.color.DynamicColorsOptions.Builder()
+                .setPrecondition { activity, _ -> ru.karasevm.privatednstoggle.ui.ThemeSettings.dynamic(activity) }
+                .build())
 
         if (BuildConfig.DEBUG){
             StrictMode.setThreadPolicy(

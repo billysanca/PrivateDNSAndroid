@@ -20,6 +20,7 @@ class FourTabsRegressionTest {
                 val list = activity.findViewById<RecyclerView>(R.id.recyclerView)
                 val mode = PrivateDNSUtils.getPrivateMode(activity.contentResolver)
                 val hostname = PrivateDNSUtils.getPrivateProvider(activity.contentResolver)
+                assertEquals(0, activity.findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar).menu.size())
                 assertEquals(4, nav.menu.size())
                 assertEquals(R.id.nav_dns, nav.selectedItemId)
                 assertEquals(View.VISIBLE, list.visibility)

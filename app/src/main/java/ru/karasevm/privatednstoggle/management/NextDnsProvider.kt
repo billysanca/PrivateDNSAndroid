@@ -8,6 +8,15 @@ class NextDnsProvider(private val transport: ReadTransport) : DnsProvider {
         return DiscoveryResult(targets, targets.singleOrNull { it.id == hint }?.id)
     }
     override val id = "nextdns"
+    override fun statistics(profile: String, key: String, now: Long): List<ReadSection> {
+        require(ManagementPolicy.validProfile(profile))
+        return listOf(ReadSection("Estatísticas", transport.get("https://api.nextdns.io/profiles/$profile/analytics/status?from=-24h", "X-Api-Key", key)),
+            ReadSection("", ""), ReadSection("Cota", "Indisponível na API pública documentada."))
+    }
+    override fun queries(profile: String, key: String, now: Long): ReadSection {
+        require(ManagementPolicy.validProfile(profile))
+        return ReadSection("Consultas", transport.get("https://api.nextdns.io/profiles/$profile/logs?from=-24h&limit=50", "X-Api-Key", key))
+    }
     override fun read(profile: String, key: String, now: Long): List<ReadSection> {
         require(ManagementPolicy.validProfile(profile))
         val base = "https://api.nextdns.io/profiles/$profile"
