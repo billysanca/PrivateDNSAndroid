@@ -6,7 +6,10 @@ enum class ManagementMode { NONE, WEB, API }
 enum class WebMode { CUSTOM_TAB, WEBVIEW }
 data class ManagementConfig(val mode: ManagementMode = ManagementMode.NONE,
     val url: String = "", val webMode: WebMode = WebMode.CUSTOM_TAB,
-    val provider: String = "nextdns", val profile: String = "")
+    val provider: String = "nextdns", val profile: String = "",
+    val statisticsUrl: String = "", val queriesUrl: String = "") {
+    fun pageUrl(page: Int) = if(mode == ManagementMode.NONE) "" else (if (page == 1) statisticsUrl else queriesUrl).ifBlank { url }
+}
 object ManagementPolicy {
     fun validUrl(value: String): Boolean = runCatching {
         val u = URI(value)

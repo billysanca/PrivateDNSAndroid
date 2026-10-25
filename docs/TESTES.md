@@ -87,3 +87,30 @@ APK debug destinado à avaliação. Não representa certificação de produção
 7. Saia e volte ao aplicativo: o snapshot de consultas deve ter sido descartado e a aba ativa deve carregar novamente. Não deve haver polling em segundo plano.
 8. Anote private_dns_mode e private_dns_specifier antes/depois de navegar e consultar: não devem mudar. A única troca permanece nos controles originais do alternador.
 9. Confira fonte grande, tema claro/escuro, leitores de tela e botões da navegação inferior. O botão Voltar nas abas de gestão deve retornar à aba DNS.
+
+## Alpha 4 — roteiro adicional
+
+- Com DNS privado desligado/automático ou hostname ativo não cadastrado, Estatísticas e Consultas não podem usar o primeiro perfil da lista.
+- Ativar NextDNS/AdGuard cadastrado, abrir ambas as abas e confirmar API automática, ausência de seletor de modo e DNS ativo visível. Remover a chave e confirmar pedido de conexão.
+- Selecionar outro hostname em Configurações: as abas de dados devem continuar usando o DNS do Android.
+- Sem hostnames cadastrados, verificar acesso às preferências e importação na quarta aba.
+- Confirmar ausência da engrenagem e do menu no cabeçalho. Testar importação/exportação por arquivo, clipboard e compartilhar; privacidade/licenças.
+- Provedor web: salvar URLs HTTPS diferentes para Estatísticas/Consultas; verificar cada destino, login/MFA e cookies conforme política do site. Retornar não pode abrir loop. URL específica vazia usa painel geral; modo Sem gerenciamento não abre páginas.
+- NextDNS em perfil de teste: cancelar confirmação não envia regra; confirmar bloqueio/liberação afeta somente o domínio/perfil exibido; regra oposta impede escrita; regra já ativa não duplica; erros de permissão/rede/resposta não aparecem como sucesso. Conferir listas no painel, histórico inalterado e efeito em consultas futuras considerando cache.
+- AdGuard: ação de regras abre painel e não faz PUT de listas.
+- Atualizar Alpha 3 sem desinstalar e verificar hostnames, ordem/habilitados, chave, associações, sessões, Quick Settings e Shizuku.
+- Repetir com TalkBack, fonte 200%, modo claro/escuro e telas pequenas.
+
+Sem contas reais e sem aparelho conectado, os itens de UI/rede acima continuam pendentes. As regressões JVM usam transportes falsos: não alteram contas nem substituem um teste ponta a ponta.
+
+### Resultado final Alpha 4 — 25/10/2026
+
+- testDebugUnitTest, assembleRelease, assembleDebugAndroidTest e lintRelease: BUILD SUCCESSFUL.
+- JVM: 33 testes, 0 falhas/erros. Domínios e roteamento: 9; descoberta: 8; gestão/backups: 9; dashboard: 6; exemplo original: 1.
+- Novas regressões: IDN e rejeição de URLs/IPs/regras; URLs específicas com fallback; DNS desligado/automático e hostname não cadastrado; API obrigatória sem sobrescrever metadados; conflito sem escrita; idempotência; confirmação posterior ao POST; ausência de retry após resultado incerto; erro de leitura/ID inválido sem escrita.
+- Lint release: 0 erros, 117 avisos (incluindo níveis warning padrão do SARIF). Avisos não foram suprimidos para aprovar a versão.
+- Integridade do núcleo original: PASS em scripts/check-upstream.ps1; git diff --check aprovado.
+- APK: Nexo-DNS-alpha4-release.apk, 5.138.647 bytes, versionCode 22, versionName 1.12.0-alpha.4. BuildConfig.DEBUG=false; aapt sem application-debuggable. Android mínimo 28 (9).
+- Assinatura v3 e alinhamento confirmados. Certificado SHA-256: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
+- SHA-256 APK: dd5b0f5af313c7be2dc4d63faef15f9ba9884ea7404185cf57360bed106f111f.
+- ADB sem aparelhos. Testes instrumentados compilados, não executados. UI e APIs com contas reais continuam pendentes. Nenhuma conta recebeu regras durante os testes automatizados.

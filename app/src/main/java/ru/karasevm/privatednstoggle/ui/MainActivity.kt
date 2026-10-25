@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
-        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this) { destination ->
+        managementPanel = ru.karasevm.privatednstoggle.management.ManagementPanel(this, settingsAction = { id -> binding.topAppBar.menu.performIdentifierAction(id, 0) }) { destination ->
             binding.bottomNavigation.selectedItemId = mainTabIds[destination.coerceIn(0, 3)]
         }
         val params = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, 0).apply {
@@ -411,6 +411,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
     }
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+        if(menu != null) for(i in 0 until menu.size()) menu.getItem(i).isVisible = false
         return true
     }
 
@@ -425,7 +426,7 @@ class MainActivity : AppCompatActivity(), AddServerDialogFragment.NoticeDialogLi
         binding.emptyView.visibility = if (!managementVisible && dnsServerViewModel.allServers.value.orEmpty().isEmpty()) View.VISIBLE else View.GONE
         binding.emptyViewHint.visibility = binding.emptyView.visibility
         binding.topAppBar.title = when(index) { 1 -> "Estatísticas"; 2 -> "Consultas"; 3 -> "Configurações"; else -> getString(R.string.app_name) }
-        if (managementVisible) managementPanel.update(dnsServerViewModel.allServers.value.orEmpty(), index)
+        if (managementVisible) managementPanel.update(dnsServerViewModel.allServers.value.orEmpty(), index, userNavigation = true)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

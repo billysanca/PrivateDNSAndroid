@@ -6,7 +6,7 @@ O adns foi consultado para separação de clientes/autenticação. Não foram co
 
 A Alpha 2 adiciona preenchimento assistido por API e componentes Material 3. Veja [o passo a passo e links oficiais](docs/ALPHA2.md).
 
-A versão atual é [Nexo DNS Alpha 3, com quatro abas e carregamento automático](docs/NEXO-ALPHA3.md).
+A versão atual é [Nexo DNS Alpha 4: DNS ativo, páginas web e regras individuais](docs/NEXO-ALPHA4.md). As instruções abaixo registram o escopo inicial; em caso de diferença, prevalece a documentação da Alpha 4.
 
 ## Instalar e preservar dados
 
@@ -26,21 +26,21 @@ Adicione o tile nas configurações rápidas. Gerenciar nunca chama o alternador
 
 ## Gerenciamento universal
 
-Na aba Gerenciamento selecione o hostname, toque em Editar gerenciamento e escolha:
+Na aba Configurações selecione o hostname e toque em Gerenciar conexão. NextDNS/AdGuard reconhecidos usam API obrigatoriamente; nos demais hostnames os modos continuam disponíveis:
 
-- Sem gerenciamento: padrão para todos os hostnames existentes.
+- Sem gerenciamento: nenhuma página é aberta para provedores genéricos.
 - Painel web: informe uma URL HTTPS. Custom Tabs é o padrão e usa o navegador padrão, suas sessões e seu gerenciador de senhas. Para usar outro navegador, altere o navegador padrão do Android. Se ele não suportar Custom Tabs, o intent pode abrir uma aba normal.
 - API nativa: selecione NextDNS ou AdGuard DNS, informe o identificador e uma chave de API emitida no site oficial. Deixe a chave em branco para manter a chave atual. Use Esquecer chave para removê-la localmente; revogação remota deve ser feita no site do provedor.
 
-Gerenciar abre a interface do hostname selecionado sem alterar o DNS ativo. Ao abrir pela primeira vez, o seletor prioriza o hostname atualmente ativo, se cadastrado.
+Configurações edita a conexão do hostname selecionado sem alterar o DNS ativo. Estatísticas e Consultas seguem exclusivamente o DNS ativo cadastrado. Painéis web podem ter URLs específicas para cada uma dessas abas.
 
-A URL pode ser alterada para qualquer provedor. HTTP, portas inválidas e credenciais embutidas na URL são rejeitados. Portas HTTPS personalizadas são aceitas. Não inclua segredos nem tokens na URL. Custom Tabs é preferível para login com MFA/passkeys. Alguns provedores rejeitam WebView ou exigem cookies de terceiros; nesse caso use Custom Tabs. Não há tentativa de contornar políticas do provedor.
+As URLs podem ser alteradas para qualquer provedor. HTTP, portas inválidas e credenciais embutidas na URL são rejeitados. Portas HTTPS personalizadas são aceitas. Não inclua segredos nem tokens na URL. Custom Tabs é preferível para login com MFA/passkeys. Alguns provedores rejeitam WebView ou exigem cookies de terceiros; nesse caso use Custom Tabs. Não há tentativa de contornar políticas do provedor.
 
 WebView é opcional: aceita cookies próprios, mantém cookies persistentes de acordo com as regras de expiração do servidor e salva DOM storage. Cookies de sessão podem expirar quando o processo termina. Não há JavaScript bridge, leitura de campos de senha, exportação de cookies ou compartilhamento de chaves de API com o painel. HTTP, conteúdo misto, acesso a arquivos e erros TLS são bloqueados. Não há suporte a pop-ups, downloads, câmera ou upload de arquivos nessa versão.
 
 Encerrar sessões WebView apaga cookies e armazenamento web de TODOS os painéis incorporados do app, após confirmação explícita. Custom Tabs não permite ao app apagar os cookies do navegador: use a saída do próprio site ou as configurações do navegador. Apagar cookies não revoga sessões no servidor.
 
-As ações feitas manualmente pelo usuário dentro de um painel continuam sob controle do próprio site. A restrição somente leitura aplica-se ao cliente nativo: nenhum endpoint de escrita é implementado.
+As ações feitas manualmente pelo usuário dentro de um painel continuam sob controle do próprio site. Na Alpha 4, o cliente nativo permite adicionar um domínio individual às listas NextDNS após confirmação. As demais integrações nativas continuam somente leitura.
 
 ## APIs oficiais e escopo de leitura
 
@@ -60,7 +60,7 @@ Os registros mostram apenas a primeira página de até 50 consultas. Não existe
 
 `management/ManagementConfig` e `ManagementStore` implementam associação genérica, sem depender das APIs. `ManagementWebActivity` cuida do WebView. `DnsProvider` define o contrato de leitura; `NextDnsProvider` e `AdGuardProvider` ficam em arquivos separados. Para adicionar uma API, implemente o contrato, registre em Providers e no seletor nativo. O gerenciamento web não precisa ser alterado.
 
-`OfficialReadTransport` só executa GET por HTTPS nos dois hosts oficiais, com redirecionamentos desativados, timeouts e limite de resposta de 2 MB. Erros 401/403 pedem atualizar a chave; 429 pede aguardar. Não há renovação por senha nem chamada de escrita para autenticação. Dados de consultas são mantidos somente na tela e descartados quando o app sai de primeiro plano. A tela de gerenciamento bloqueia screenshots e recents.
+`OfficialReadTransport` só executa GET por HTTPS nos dois hosts oficiais, com redirecionamentos desativados, timeouts e limite de resposta de 2 MB. Erros 401/403 pedem atualizar a chave; 429 pede aguardar. Não há renovação por senha nem chamada de escrita para autenticação. Dados de consultas são mantidos somente na tela e descartados quando o app sai de primeiro plano. As abas de gestão bloqueiam screenshots e recents. A capacidade de escrita é separada em DomainRules.kt: somente POST de um domínio às listas NextDNS, após confirmação, sem exclusão ou substituição de listas.
 
 `ApiKeyVault` usa AES-GCM com chave não exportável no Android Keystore. Ciphertext é salvo atomicamente em noBackupFilesDir por hostname/provedor. Backups automáticos estão desativados. Uma chave perdida/inválida exige nova entrada. Não há logs HTTP, analytics ou persistência de resultados. O APK debug é para testes e deve ser substituído por uma versão release assinada antes de uso permanente; o isolamento não protege um aparelho comprometido.
 
