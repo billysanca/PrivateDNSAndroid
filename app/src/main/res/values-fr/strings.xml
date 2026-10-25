@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="done">Terminé</string>
-    <string name="app_name">Private DNS Quick Toggle</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="dns_unknown">Inconnu</string>
     <string name="dns_off">Éteint</string>
     <string name="add_server">Ajouter un serveur</string>
@@ -18,7 +18,7 @@
     <string name="auto_option_only_auto">Seulement automatique</string>
     <string name="auto_option_off_and_auto">Éteint et automatique</string>
     <string name="dns_auto">Automatique</string>
-    <string name="tile_name">Commutateur de DNS privé</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="menu_save">Enregistrer</string>
     <string name="permission_missing">Autorisation non accordée, vérifiez les instructions dans l\'application</string>
     <string name="select_server">Sélectionner le serveur</string>

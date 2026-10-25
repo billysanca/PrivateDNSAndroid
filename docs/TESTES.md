@@ -64,3 +64,26 @@ APK debug destinado à avaliação. Não representa certificação de produção
 6. Use uma URL web personalizada já salva e confira que ela é preservada. Um hostname desconhecido não deve receber automaticamente um painel NextDNS.
 7. Confira menus expostos, campos, botões, cartões, progresso e diálogos Material com tema claro/escuro, fonte grande e leitor de tela.
 8. Registre os valores de private_dns_specifier e private_dns_mode antes/depois de configurar/consultar: devem permanecer iguais.
+
+## Nexo DNS Alpha 3 — 25/10/2026
+
+- Build final: testDebugUnitTest, assembleRelease, assembleDebugAndroidTest e lintRelease concluídos com sucesso.
+- JVM: 24 testes, 0 falhas. Os seis novos testes cobrem estatísticas, cotas, ausência de dados, respostas inválidas, filtros de bloqueio e cache por hostname/perfil com expiração e descarte.
+- Lint release: 0 erros e 107 avisos. Nenhuma regra de segurança foi desativada. A chamada de dimensionamento de texto foi ajustada para a API pública TextViewCompat.
+- Integridade do código do alternador, Room, backup, Quick Settings e Shizuku: aprovada por scripts/check-upstream.ps1.
+- APK otimizado sem debug: Nexo-DNS-alpha3-release.apk, 5.101.447 bytes, pacote io.github.billysanca.dnsmanager, versionCode 21, versionName 1.12.0-alpha.3, rótulo Nexo DNS.
+- Assinatura e alinhamento verificados. Certificado SHA-256 igual ao das versões release anteriores: 6cc020643edead921513f6869a15f31f504baba19e7056491a7620af58e256a6.
+- Testes instrumentados compilados, incluindo FourTabsRegressionTest. Não executados: nenhum aparelho estava conectado ao ADB.
+- Revisão visual no aparelho, fluxo completo de colar chave → Salvar → Estatísticas e APIs com credenciais reais permanecem pendentes. Não se declara validação visual final sem essa execução.
+
+### Roteiro específico das quatro abas
+
+1. Atualize a Alpha 2 release sem desinstalar. Confira o nome Nexo DNS, os endereços, a ordem, os hostnames desativados e as chaves existentes.
+2. Abra DNS e confira a lista original, editor, ordenação, importação/exportação e botão de adicionar. Use Quick Settings e Shizuku para verificar os fluxos originais.
+3. Com API configurada, abra Estatísticas e Consultas: o carregamento deve iniciar sem botão Gerenciar. Ao alternar entre as duas, a consulta recente pode ser reutilizada por até 60 segundos. Atualizar dados força a rede.
+4. Confira contagens, distribuição, cotas de conta AdGuard e o link de consumo NextDNS. O gráfico de distribuição não deve ser interpretado como série temporal.
+5. Em Consultas, busque um domínio e use Todas/Bloqueadas/Outras. Os filtros são locais à primeira página de até 50 registros.
+6. Em Configurações, cole uma chave e toque em Salvar: a descoberta deve acontecer automaticamente. Havendo correspondência única, a configuração local é salva e Estatísticas abre; ambiguidades mostram a lista. Cancelar a seleção não deve salvar.
+7. Saia e volte ao aplicativo: o snapshot de consultas deve ter sido descartado e a aba ativa deve carregar novamente. Não deve haver polling em segundo plano.
+8. Anote private_dns_mode e private_dns_specifier antes/depois de navegar e consultar: não devem mudar. A única troca permanece nos controles originais do alternador.
+9. Confira fonte grande, tema claro/escuro, leitores de tela e botões da navegação inferior. O botão Voltar nas abas de gestão deve retornar à aba DNS.

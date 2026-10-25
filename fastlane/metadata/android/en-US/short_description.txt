@@ -1,1 +1,1 @@
-Quick settings tile to switch active private DNS server
+Private DNS switching, native provider statistics and universal web panels

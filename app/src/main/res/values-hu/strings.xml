@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Privát DNS Gyorskapcsoló</string>
-    <string name="tile_name">Privát DNS Kapcsoló</string>
+    <string name="app_name">Nexo DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">Nincs engedély megadva, nézd meg az alkalmazásban, hogyan adhatod meg</string>
     <string name="dns_off">Ki</string>
     <string name="dns_auto">Automatikus</string>

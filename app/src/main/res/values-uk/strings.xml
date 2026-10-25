@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tile_name">Перемикач приватного DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="dns_unknown">Невідомо</string>
     <string name="select_server">Обрати сервер</string>
     <string name="cancel">Відмінити</string>
@@ -21,7 +21,7 @@
     <string name="add_edittext_label_hint">Позначка DNS серверу (Опціонально)</string>
     <string name="add_server">Додати сервер</string>
     <string name="done">Готово</string>
-    <string name="app_name">Швидке перемикання приватного DNS</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="edit_server">Редагувати сервер</string>
     <string name="delete_question">Видалити</string>
     <string name="options">Опції</string>

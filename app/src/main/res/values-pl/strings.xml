@@ -33,8 +33,8 @@
     <string name="import_failure_json">Import nie powiódł się, zniekształcony plik JSON</string>
     <string name="export_success">Zapisano pomyślnie</string>
     <string name="delete_message">Czy na pewno chcesz usunąć serwer?</string>
-    <string name="app_name">Private DNS Quick Toggle</string>
-    <string name="tile_name">Przełącznik prywatnego DNS</string>
+    <string name="app_name">Nexo DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">Nieprzydzielono uprawnienia, sprawdź w aplikacji, w jaki sposób można to zrobić</string>
     <string name="add_edittext_label_hint">Opis serwera DNS (opcjonalnie)</string>
     <string name="auto_option_description">Wybierz opcje, które będą dostępne w kafelku</string>

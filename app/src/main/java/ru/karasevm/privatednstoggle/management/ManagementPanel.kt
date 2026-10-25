@@ -27,13 +27,16 @@ import ru.karasevm.privatednstoggle.model.DnsServer
 import ru.karasevm.privatednstoggle.util.PrivateDNSUtils
 
 /** Material 3 Views. Web settings remain independent of native provider setup and discovery. */
-class ManagementPanel(private val activity: AppCompatActivity) {
+class ManagementPanel(private val activity: AppCompatActivity, private val navigate: (Int) -> Unit = {}) {
     val view = ScrollView(activity).apply { isFillViewport = true }
     private val column = column()
     private val store = ManagementStore(activity)
     private val vault = ApiKeyVault(activity)
     private var job: Job? = null
     private var selected: String? = null
+    private var page = 3
+    private var lastServers = emptyList<DnsServer>()
+    private val cache = DashboardCache()
     init { view.addView(column) }
     private fun dp(value: Int) = (value * activity.resources.displayMetrics.density).toInt()
     private fun column() = LinearLayout(activity).apply {
@@ -57,6 +60,9 @@ class ManagementPanel(private val activity: AppCompatActivity) {
         val content = column()
         parent.addView(MaterialCardView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) }
+            radius = dp(28).toFloat()
+            cardElevation = 0f
+            strokeWidth = 0
             addView(content)
         })
         return content
@@ -103,84 +109,198 @@ class ManagementPanel(private val activity: AppCompatActivity) {
         is ApiFailure -> e.message!!
         else -> "Não foi possível consultar. Confira a chave, a conexão e os dados no painel oficial. Nenhum DNS foi alterado."
     }
-    fun update(servers: List<DnsServer>) {
+    fun update(servers: List<DnsServer>, destination: Int = page) {
+        page = destination.coerceIn(1, 3)
+        lastServers = servers
         job?.cancel()
         column.removeAllViews()
-        text(column, "Gerenciamento", true)
-        text(column, "Escolha um hostname para consultar a API ou abrir seu painel. O DNS ativo permanece igual.")
-        if (servers.isEmpty()) { text(column, "Cadastre um hostname na aba DNS."); return }
+        text(column, when(page) { 1 -> "Estatísticas"; 2 -> "Consultas"; else -> "Configurações" }, true).textSize = 32f
+        text(column, when(page) { 1 -> "Seu DNS em números · últimas 24 horas"; 2 -> "Atividade recente do provedor · últimas 24 horas"; else -> "Contas, painéis e preferências do Nexo DNS" })
+        if (servers.isEmpty()) {
+            val empty = card(column)
+            text(empty, "Adicione seu primeiro DNS", true)
+            text(empty, "Os endereços continuam na primeira aba, como no aplicativo original.")
+            button(empty, "Abrir aba DNS", true) { navigate(0) }
+            return
+        }
         val current = selected ?: PrivateDNSUtils.getPrivateProvider(activity.contentResolver)
         val initial = servers.indexOfFirst { it.server == current }.coerceAtLeast(0)
         val detail = column()
+        fun configure(host: String) { edit(host) {
+            cache.clear()
+            val destination = if(store.get(host).mode == ManagementMode.API) 1 else 3
+            if (page == destination) update(lastServers, page) else navigate(destination)
+        } }
         fun show(position: Int) {
             job?.cancel()
             val host = servers[position].server
             selected = host
             detail.removeAllViews()
             val config = store.get(host)
-            val info = card(detail)
-            text(info, when (config.mode) {
-                ManagementMode.NONE -> "Sem gerenciamento"
-                ManagementMode.WEB -> "Painel web"
-                ManagementMode.API -> providerName(config.provider)
-            }, true)
-            text(info, host)
-            if (config.mode == ManagementMode.API) text(info, "Perfil/servidor: ${config.profile} · somente leitura")
-            if (config.mode == ManagementMode.WEB) text(info, config.url)
-            button(info, "Configurar gerenciamento") { edit(host) { update(servers) } }
-            val outputBox = card(detail).apply { visibility = View.GONE }
-            val progress = LinearProgressIndicator(activity).apply { isIndeterminate = true; visibility = View.GONE }
-            outputBox.addView(progress)
-            val output = text(outputBox, "")
-            button(info, "Gerenciar", true) {
-                when (config.mode) {
-                    ManagementMode.NONE -> edit(host) { update(servers) }
-                    ManagementMode.WEB -> openWeb(config)
-                    ManagementMode.API -> {
-                        if (job?.isActive != true) {
-                            outputBox.visibility = View.VISIBLE
-                            output.text = "Consultando…"
-                            progress.visibility = View.VISIBLE
-                            job = activity.lifecycleScope.launch {
-                                try {
-                                    val sections = withContext(Dispatchers.IO) {
-                                        val key = vault.get("$host:${config.provider}") ?: error("Cadastre uma chave de API")
-                                        Providers.get(config.provider).read(config.profile, key)
-                                    }
-                                    output.text = sections.mapIndexed { index, section -> section.title + "\n" + ReadPresentation.format(config.provider, index, section.json) }.joinToString("\n\n")
-                                } catch (e: CancellationException) { throw e }
-                                catch (e: Exception) { output.text = errorMessage(e) }
-                                finally { progress.visibility = View.GONE }
-                            }
-                        }
+            val context = card(detail)
+            text(context, if(config.mode == ManagementMode.API) providerName(config.provider) else if(config.mode == ManagementMode.WEB) "Painel web" else "Conta não conectada", true)
+            text(context, if(config.mode == ManagementMode.API) "${config.profile} · $host" else host)
+            if (page == 3) {
+                button(context, if(config.mode == ManagementMode.NONE) "Conectar conta ou painel" else "Gerenciar conexão", true) { configure(host) }
+                if (config.mode == ManagementMode.API) {
+                    button(context, "Abrir estatísticas") { navigate(1) }
+                    button(context, "Criar ou gerenciar chave no site") { openLink(ProviderSetup.keyUrl(config.provider)) }
+                    button(context, "Abrir perfil no painel oficial") { openLink(ProviderSetup.dashboardUrl(config.provider, config.profile)) }
+                    button(context, "Desconectar chave neste aparelho") {
+                        job?.cancel(); cache.clear(); vault.remove("$host:${config.provider}")
+                        text(context, "Chave local removida. A revogação remota é feita no site oficial.")
                     }
+                } else if(config.mode == ManagementMode.WEB) {
+                    text(context, config.url)
+                    button(context, "Gerenciar painel web") { openWeb(config) }
                 }
-            }
-            if (config.mode == ManagementMode.API) {
-                button(info, "Gerenciar chave no site oficial") { openLink(ProviderSetup.keyUrl(config.provider)) }
-                button(info, "Esquecer chave neste aparelho") {
-                    job?.cancel(); outputBox.visibility = View.VISIBLE; output.text = ""; vault.remove("$host:${config.provider}")
-                    output.text = "Chave local removida. Para revogar, abra o gerenciamento de chaves no site oficial."
+                val preferences = card(detail)
+                text(preferences, "Aplicativo", true)
+                button(preferences, "Preferências do alternador DNS") {
+                    ru.karasevm.privatednstoggle.ui.OptionsDialogFragment().show(activity.supportFragmentManager, "dns_options")
                 }
+                text(preferences, "Importar e exportar continuam disponíveis no menu superior. Selecionar um hostname aqui não altera o DNS do Android.")
+                button(preferences, "Encerrar sessões WebView") {
+                    MaterialAlertDialogBuilder(activity).setTitle("Encerrar sessões incorporadas?")
+                        .setMessage("Apagar cookies e armazenamento de todos os painéis WebView deste aplicativo? As sessões do navegador permanecem no navegador.")
+                        .setPositiveButton("Apagar") { _, _ ->
+                            android.webkit.CookieManager.getInstance().removeAllCookies {
+                                android.webkit.CookieManager.getInstance().flush()
+                                android.webkit.WebStorage.getInstance().deleteAllData()
+                                Toast.makeText(activity, "Sessões WebView removidas", Toast.LENGTH_SHORT).show()
+                            }
+                        }.setNegativeButton("Cancelar", null).show()
+                }
+                return
             }
-            button(detail, "Encerrar sessões WebView") {
-                MaterialAlertDialogBuilder(activity).setTitle("Encerrar sessões incorporadas?")
-                    .setMessage("Apagar cookies e armazenamento de todos os painéis WebView deste aplicativo? As sessões do navegador são gerenciadas pelo próprio navegador.")
-                    .setPositiveButton("Apagar") { _, _ ->
-                        android.webkit.CookieManager.getInstance().removeAllCookies {
-                            android.webkit.CookieManager.getInstance().flush()
-                            android.webkit.WebStorage.getInstance().deleteAllData()
-                            outputBox.visibility = View.VISIBLE
-                            output.text = "Sessões WebView removidas."
-                        }
-                    }.setNegativeButton("Cancelar", null).show()
+            if (config.mode != ManagementMode.API) {
+                text(context, if(config.mode == ManagementMode.WEB) "Este provedor usa seu painel web; estatísticas nativas exigem uma API conectada." else "Conecte sua conta para carregar os dados automaticamente.")
+                button(context, "Configurar conexão", true) { configure(host) }
+                if(config.mode == ManagementMode.WEB) button(context, "Abrir painel web") { openWeb(config) }
+                return
+            }
+            val results = column()
+            val progress = LinearProgressIndicator(activity).apply { isIndeterminate = true }
+            detail.addView(progress)
+            detail.addView(results)
+            button(context, "Atualizar dados") { cache.clear(); update(lastServers, page) }
+            val requestKey = "$host|${config.provider}|${config.profile}"
+            fun render(sections: List<ReadSection>) {
+                results.removeAllViews()
+                if(page == 1) renderStats(results, config, sections) else renderQueries(results, config, sections)
+            }
+            val existing = cache.get(requestKey, android.os.SystemClock.elapsedRealtime())
+            if (existing != null) {
+                progress.visibility = View.GONE
+                runCatching { render(existing) }.onFailure { text(results, "Resposta incompatível. Atualize os dados ou confira a conexão.") }
+                return
+            }
+            job = activity.lifecycleScope.launch {
+                try {
+                    val sections = withContext(Dispatchers.IO) {
+                        val token = vault.get("$host:${config.provider}") ?: error("Conecte a conta em Configurações")
+                        Providers.get(config.provider).read(config.profile, token)
+                    }
+                    render(sections)
+                    cache.put(requestKey, sections, android.os.SystemClock.elapsedRealtime())
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) {
+                    results.removeAllViews()
+                    val error = card(results)
+                    text(error, "Não foi possível atualizar", true)
+                    text(error, errorMessage(e))
+                    button(error, "Revisar conexão") { configure(host) }
+                } finally { progress.visibility = View.GONE }
             }
         }
-        choice(column, "Hostname", servers.map { if(it.label.isBlank()) it.server else "${it.label} · ${it.server}" }, initial, ::show)
+        choice(column, "DNS / perfil selecionado", servers.map { if(it.label.isBlank()) it.server else "${it.label} · ${it.server}" }, initial, ::show)
         column.addView(detail)
         show(initial)
     }
-    fun suspendReading() { job?.cancel(); column.removeAllViews() }
+    private fun number(value: Long) = java.text.NumberFormat.getIntegerInstance().format(value)
+    private fun metric(parent: LinearLayout, title: String, value: Long) {
+        val box = card(parent)
+        text(box, title)
+        text(box, number(value), true).apply {
+            androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(this, 18, 42, 2, android.util.TypedValue.COMPLEX_UNIT_SP)
+            maxLines = 1
+        }
+        if(parent.orientation == LinearLayout.HORIZONTAL) {
+            (box.parent as View).layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { setMargins(dp(4), dp(8), dp(4), dp(8)) }
+        }
+    }
+    private fun renderStats(parent: LinearLayout, config: ManagementConfig, sections: List<ReadSection>) {
+        val stats = DashboardData.stats(config.provider, sections[0].json)
+        metric(parent, "Consultas nas últimas 24 horas", stats.total)
+        val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
+        parent.addView(row)
+        metric(row, "Bloqueadas", stats.blocked)
+        metric(row, "Não bloqueadas", stats.other)
+        val distribution = card(parent)
+        text(distribution, "Distribuição das consultas", true)
+        for ((name, count) in listOf("Bloqueadas" to stats.blocked, "Não bloqueadas" to stats.other)) {
+            text(distribution, "$name · ${number(count)}")
+            distribution.addView(LinearProgressIndicator(activity).apply {
+                isIndeterminate = false; max = 100
+                progress = if(stats.total > 0) ((count.toDouble() / stats.total) * 100).toInt() else 0
+                trackThickness = dp(8); trackCornerRadius = dp(4)
+                contentDescription = "$name: ${number(count)} de ${number(stats.total)}"
+            })
+        }
+        text(distribution, if(stats.total > 0) "${String.format(java.util.Locale.getDefault(), "%.1f", stats.blocked.toDouble() * 100 / stats.total)}% das consultas foram bloqueadas" else "Sem consultas registradas no período")
+        val quota = card(parent)
+        text(quota, "Consumo da conta", true)
+        if(config.provider == "nextdns") {
+            text(quota, "A API pública não informa a cota da conta. Os números acima pertencem apenas ao perfil selecionado.")
+            button(quota, "Ver consumo na conta NextDNS") { openLink(ProviderSetup.keyUrl(config.provider)) }
+        } else {
+            val labels = mapOf("requests" to "Consultas", "devices" to "Dispositivos", "dns_servers" to "Servidores", "user_rules" to "Regras", "access_rules" to "Regras de acesso", "dedicated_ipv4" to "IPv4 dedicados")
+            val quotas = DashboardData.quotas(sections[2].json)
+            if(quotas.isEmpty()) text(quota, "Cotas não informadas pelo provedor.")
+            quotas.forEach { limit ->
+                text(quota, "${labels[limit.name] ?: limit.name}: ${number(limit.used)} / ${number(limit.limit)}")
+                if(limit.limit > 0) quota.addView(LinearProgressIndicator(activity).apply {
+                    isIndeterminate = false; max = 100
+                    progress = ((limit.used.toDouble() / limit.limit) * 100).coerceIn(0.0, 100.0).toInt()
+                })
+            }
+            text(quota, "Cotas da conta inteira; estatísticas acima filtradas pelo servidor.")
+        }
+    }
+    private fun renderQueries(parent: LinearLayout, config: ManagementConfig, sections: List<ReadSection>) {
+        val queries = DashboardData.queries(config.provider, sections[1].json)
+        val (_, search) = field(parent, "Buscar domínio nestas consultas")
+        val filters = com.google.android.material.chip.ChipGroup(activity).apply { isSingleSelection = true; isSelectionRequired = true }
+        var filter = 0
+        val list = column()
+        fun renderList() {
+            list.removeAllViews()
+            val needle = search.text.toString().trim()
+            val matching = queries.filter { it.domain.contains(needle, true) && (filter == 0 || (filter == 1 && it.blocked) || (filter == 2 && !it.blocked)) }
+            if(matching.isEmpty()) text(list, if(queries.isEmpty()) "Nenhuma consulta no período ou registro desativado no provedor." else "Nenhuma consulta corresponde ao filtro.")
+            matching.forEach { query ->
+                val entry = card(list)
+                text(entry, query.domain.ifBlank { "Domínio não informado" }, true).textSize = 18f
+                val time = runCatching { java.time.OffsetDateTime.parse(query.timestamp).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm:ss")) }.getOrDefault(query.timestamp)
+                text(entry, "${time.ifBlank { "Horário não informado" }} · ${query.status.ifBlank { "Status não informado" }}")
+                if(query.device.isNotBlank()) text(entry, "Dispositivo: ${query.device}")
+            }
+        }
+        listOf("Todas", "Bloqueadas", "Outras").forEachIndexed { index, label ->
+            val chip = com.google.android.material.chip.Chip(activity).apply {
+                id = View.generateViewId(); text = label; isCheckable = true; isChecked = index == 0
+                setOnCheckedChangeListener { _, checked -> if(checked) { filter = index; renderList() } }
+            }
+            filters.addView(chip)
+        }
+        parent.addView(filters)
+        text(parent, "Até 50 consultas recentes. A busca e os filtros se aplicam somente a esta primeira página.")
+        parent.addView(list)
+        search.doAfterTextChanged { renderList() }
+        renderList()
+    }
+
+    fun suspendReading() { job?.cancel(); cache.clear(); column.removeAllViews() }
     private fun openLink(url: String) {
         if (!ManagementPolicy.validUrl(url)) return
         runCatching { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(activity, url.toUri()) }
@@ -196,9 +316,13 @@ class ManagementPanel(private val activity: AppCompatActivity) {
         var providerId = if (store.contains(host)) saved.provider else ProviderSetup.detect(host) ?: saved.provider
         var editorJob: Job? = null
         var targets = emptyList<ProviderTarget>()
+        var discoveryComplete = saved.mode == ManagementMode.API && ManagementPolicy.validProfile(saved.profile)
+        var saveAfterDiscovery = false
+        var manualId = false
+        lateinit var dialog: AlertDialog
         val form = column()
         text(form, "Configurar $host", true)
-        val mode = choice(form, "Modo de gerenciamento", listOf("Sem gerenciamento", "Painel web", "API nativa · leitura"), saved.mode.ordinal)
+        val mode = choice(form, "Modo de gerenciamento", listOf("Sem gerenciamento", "Painel web", "API nativa · leitura"), if(saved.mode == ManagementMode.NONE && ProviderSetup.detect(host) != null) ManagementMode.API.ordinal else saved.mode.ordinal)
         val webSection = column()
         val nativeSection = column()
         form.addView(webSection)
@@ -214,13 +338,14 @@ class ManagementPanel(private val activity: AppCompatActivity) {
         val keyLink = button(nativeSection, "Criar ou gerenciar chave · ${providerName(providerId)}") { openLink(ProviderSetup.keyUrl(providerId)) }
         val progress = LinearProgressIndicator(activity).apply { isIndeterminate = true; visibility = View.GONE }
         nativeSection.addView(progress)
-        val status = text(nativeSection, "A chave é criada no site oficial. Após colar, conecte para identificar o perfil/servidor deste hostname.")
+        val status = text(nativeSection, "Cole a chave e toque em Salvar. A conta e o perfil serão conectados automaticamente quando houver correspondência segura.")
         val (profileLayout, profile) = field(nativeSection, "ID do perfil/servidor", saved.profile.ifEmpty { inferredProfile }, "Preenchido automaticamente quando houver correspondência segura; você também pode editar.")
         lateinit var selectTarget: MaterialButton
         fun displayTargets(result: DiscoveryResult) {
             targets = result.targets
             selectTarget.isEnabled = targets.isNotEmpty()
             if (result.matchedId != null) {
+                discoveryComplete = true
                 profile.setText(result.matchedId)
                 profileLayout.error = null
                 status.text = "Correspondência encontrada para $host. Perfil/servidor preenchido; toque em Salvar para confirmar."
@@ -228,8 +353,16 @@ class ManagementPanel(private val activity: AppCompatActivity) {
                 status.text = if(targets.isEmpty()) "Nenhum perfil/servidor encontrado. Abra o painel oficial ou confira as permissões da chave."
                     else "Conectado. Não houve correspondência inequívoca com este hostname. Selecione o perfil/servidor correto na lista."
             }
+            if (saveAfterDiscovery) {
+                if (result.matchedId != null) {
+                    saveAfterDiscovery = false
+                    profile.post { dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick() }
+                } else if(targets.isNotEmpty()) {
+                    selectTarget.post { selectTarget.performClick() }
+                } else saveAfterDiscovery = false
+            }
         }
-        button(nativeSection, "Conectar e preencher automaticamente", true) {
+        val connect = button(nativeSection, "Reconectar e identificar perfil", true) {
             if (editorJob?.isActive != true) {
                 val requestedProvider = providerId
                 val enteredKey = key.text.toString().trim()
@@ -248,7 +381,7 @@ class ManagementPanel(private val activity: AppCompatActivity) {
                             }
                             if (requestedProvider == providerId) displayTargets(result)
                         } catch (e: CancellationException) { throw e }
-                        catch (e: Exception) { status.text = errorMessage(e) + " Use os links abaixo se precisar preencher manualmente." }
+                        catch (e: Exception) { saveAfterDiscovery = false; status.text = errorMessage(e) + " Use os links ou ative o preenchimento manual." }
                         finally { progress.visibility = View.GONE }
                     }
                 }
@@ -257,18 +390,26 @@ class ManagementPanel(private val activity: AppCompatActivity) {
         selectTarget = button(nativeSection, "Selecionar perfil/servidor encontrado") {
             MaterialAlertDialogBuilder(activity).setTitle("${providerName(providerId)} · perfis/servidores")
                 .setItems(targets.map { "${it.name} · ${it.id}" }.toTypedArray()) { _, index ->
+                    discoveryComplete = true
                     profile.setText(targets[index].id)
                     profileLayout.error = null
-                    status.text = "Selecionado: ${targets[index].name}. Toque em Salvar para confirmar."
-                }.setNegativeButton("Cancelar", null).show()
+                    status.text = "Selecionado: ${targets[index].name}."
+                    if (saveAfterDiscovery) { saveAfterDiscovery = false; profile.post { dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick() } }
+                }.setNegativeButton("Cancelar") { _, _ -> saveAfterDiscovery = false }
+                .setOnCancelListener { saveAfterDiscovery = false }.show()
         }.apply { isEnabled = false }
+        button(nativeSection, "Usar ID manual") {
+            manualId = true; saveAfterDiscovery = false
+            status.text = "Preenchimento manual ativado. Confira o ID no painel oficial e salve."
+        }
         key.doAfterTextChanged {
             editorJob?.cancel()
+            discoveryComplete = false; manualId = false; saveAfterDiscovery = false
             progress.visibility = View.GONE
             targets = emptyList()
             selectTarget.isEnabled = false
             keyLayout.error = null
-            status.text = "Chave alterada. Conecte para identificar o perfil/servidor."
+            status.text = "Chave alterada. Toque em Salvar para conectar automaticamente."
         }
         button(nativeSection, "Abrir perfil/servidor no painel oficial") {
             openLink(ProviderSetup.dashboardUrl(providerId, profile.text.toString().trim()))
@@ -286,6 +427,7 @@ class ManagementPanel(private val activity: AppCompatActivity) {
                 editorJob?.cancel(); progress.visibility = View.GONE
                 val previousDefault = ProviderSetup.dashboardUrl(providerId, profile.text.toString().trim())
                 providerId = next; provider.index = position
+                discoveryComplete = false; manualId = false; saveAfterDiscovery = false
                 key.text?.clear(); targets = emptyList(); selectTarget.isEnabled = false
                 profile.setText(if(next == "nextdns") ProviderSetup.nextDnsProfile(host).orEmpty() else "")
                 if (url.text.isNullOrBlank() || url.text.toString() == previousDefault) url.setText(ProviderSetup.dashboardUrl(next, profile.text.toString()))
@@ -294,12 +436,17 @@ class ManagementPanel(private val activity: AppCompatActivity) {
             }
         }
         visibility()
-        val dialog = MaterialAlertDialogBuilder(activity).setView(ScrollView(activity).apply { addView(form) })
+        dialog = MaterialAlertDialogBuilder(activity).setView(ScrollView(activity).apply { addView(form) })
             .setPositiveButton("Salvar", null).setNegativeButton("Cancelar", null).create()
         dialog.setOnShowListener {
             dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 if(editorJob?.isActive == true) { status.text = "Aguarde a consulta terminar antes de salvar."; return@setOnClickListener }
+                if (mode.index == ManagementMode.API.ordinal && !manualId && !discoveryComplete) {
+                    saveAfterDiscovery = true
+                    connect.performClick()
+                    return@setOnClickListener
+                }
                 val updated = ManagementConfig(ManagementMode.entries[mode.index], url.text.toString().trim(), WebMode.entries[web.index], providerId, profile.text.toString().trim())
                 urlLayout.error = null; profileLayout.error = null
                 when {

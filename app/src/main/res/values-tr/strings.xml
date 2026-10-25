@@ -34,7 +34,7 @@
     <string name="add_server">Sunucu Ekleyiniz</string>
     <string name="permission_missing">İzin verilmedi, nasıl yapıldığını görmek için uygulamayı kontrol ediniz</string>
     <string name="import_failure_json">İçe aktarma başarısız oldu, hatalı biçimlendirilmiş JSON</string>
-    <string name="app_name">Özel DNS Hızlı Geçiş</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="shizuku_success_toast">İzin verildi, şimdi Shizuku iznini iptal edebilirsiniz</string>
     <string name="import_failure">Aktarma başarısız</string>
     <string name="menu_import_from_clipboard">Panodan</string>
@@ -47,7 +47,7 @@
     <string name="copy_success">Kopyalandı</string>
     <string name="edit_server">Sunucuyu düzenle</string>
     <string name="add_server_enabled">Etkin</string>
-    <string name="tile_name">Özel DNS Geçişi</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="menu_import_from_file">Dosyadan</string>
     <string name="menu_export_to_clipboard">Panoya</string>
     <string name="menu_export_share">Paylaş</string>

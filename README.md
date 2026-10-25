@@ -1,70 +1,42 @@
-# DNS Manager — gerenciamento universal de DNS
+# Nexo DNS
 
-Fork de PrivateDNSAndroid com aba nativa de leitura para NextDNS e AdGuard DNS e painéis HTTPS por hostname via Custom Tabs ou WebView. Preserva alternador, múltiplos hostnames, Quick Settings e Shizuku.
+Endereços DNS do PrivateDNSAndroid e gestão nativa inspirada no ADNS, no mesmo aplicativo Android.
 
-**Pacote release:** `io.github.billysanca.dnsmanager`. Exporte os dados no aplicativo original e importe no fork; os pacotes podem coexistir.
+## Quatro abas
 
-Veja a [Alpha 2: configuração automática e Material 3](docs/ALPHA2.md).
+- **DNS**: a lista de hostnames do PrivateDNS original, com edição, ordenação e habilitação de endereços.
+- **Estatísticas**: consultas e bloqueios carregados automaticamente, distribuição e consumo de cotas quando informado pelo provedor.
+- **Consultas**: registros nativos com busca e filtros locais.
+- **Configurações**: contas API, painéis web e preferências do alternador.
 
-Consulte [instalação, segurança e arquitetura](README-FORK.md) e [testes e limitações](docs/TESTES.md). As instruções abaixo são o README histórico do upstream e se referem ao pacote original. Não há troca automática nem cliente de escrita remota.
+A navegação inferior flutuante e os cartões seguem o princípio do ADNS. A primeira aba mantém os endereços do PrivateDNS original.
 
----
-[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/karasevm/PrivateDNSAndroid/total)](https://github.com/karasevm/PrivateDNSAndroid/releases/latest)
-[![GitHub Release](https://img.shields.io/github/v/release/karasevm/PrivateDNSAndroid)](https://github.com/karasevm/PrivateDNSAndroid/releases/latest)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/ru.karasevm.privatednstoggle&label=IzzyOnDroid)](https://apt.izzysoft.de/fdroid/index/apk/ru.karasevm.privatednstoggle)
-[![Translation status](https://hosted.weblate.org/widget/privatednsandroid/private-dns-quick-toggle/svg-badge.svg)](https://hosted.weblate.org/engage/privatednsandroid/)
+## Instalar e atualizar
 
-# Private DNS Quick Toggle
-A quick settings tile to switch your private dns provider. Supports any number of providers. Makes it easy to turn adblocking dns servers on or off with just
-a single tap.
+[Baixe o APK otimizado no Releases](https://github.com/billysanca/PrivateDNSAndroid/releases/tag/v1.12.0-alpha.3).
 
-![Private DNS app screenshot](readme.jpg)
+- Android 9 ou posterior; APK release sem debug.
+- Nome: **Nexo DNS**. Pacote preservado: `io.github.billysanca.dnsmanager`.
+- Atualiza sobre as versões release anteriores sem desinstalar, preservando os dados e a chave de assinatura.
+- O debug `.dev` e o aplicativo original são instalações separadas; use exportar/importar para transferir hostnames.
 
-## Installation
+Quick Settings e Shizuku permanecem disponíveis. Navegar e consultar o provedor não altera o DNS ativo. Para usar o alternador, autorize Shizuku ou a permissão ADB descrita na documentação.
 
-### IzzyOnDroid (Recommended, will enable auto-updates on Android 12+)
+## Conectar o provedor
 
-1. Install an F-droid client such as [Droidify](https://droidify.eu.org/download) or the [official F-Droid client](https://f-droid.org/)
-2. Verify that [IzzyOnDroid repo](https://apt.izzysoft.de/fdroid/repo?fingerprint=3BF0D6ABFEAE2F401707B6D966BE743BF0EEE49C2561B9BA39073711F628937A) is added and enabled
-3. Search for the full app name "Private DNS Quick Toggle" and install it
+Use Configurações, cole a chave de API e toque em Salvar. A descoberta do perfil/servidor acontece automaticamente; ambiguidades exigem escolha na lista. Há links oficiais para obter a chave e preencher o que não puder ser descoberto. Depois da conexão, Estatísticas e Consultas carregam ao abrir.
 
-### GitHub Releases
-Get the latest apk on the [releases page](https://github.com/karasevm/PrivateDNSAndroid/releases/latest) 
+APIs oficiais NextDNS e AdGuard DNS somente para leitura. Qualquer provedor pode ter um painel HTTPS associado ao hostname, aberto por Custom Tabs ou WebView opcional. Chaves são cifradas com Android Keystore; senhas dos painéis não são capturadas. Não há troca automática nem escrita remota via API.
 
-## Activation
-To change the system DNS options the app requires `android.permission.WRITE_SECURE_SETTINGS` permission. There are multiple ways to provide it.
+## Documentação e testes
 
-### Automatic (Shizuku)
-1. Install and start [Shizuku](https://shizuku.rikka.app/).
-2. Start the app and allow Shizuku access when prompted.
+- [Nexo DNS Alpha 3: navegação, automação e limites](docs/NEXO-ALPHA3.md)
+- [Segurança, instalação e arquitetura](README-FORK.md)
+- [Regressões e roteiro em aparelho](docs/TESTES.md)
+- [Histórico da configuração assistida Alpha 2](docs/ALPHA2.md)
 
-### Manual
-For the app to work properly you'll need to provide it permissions via ADB:
+A versão continua Alpha. Testes instrumentados, revisão visual em aparelho e APIs com contas reais precisam de validação antes de uma distribuição estável.
 
-1. Get to your PC and download platform tools from google [here](https://developer.android.com/studio/releases/platform-tools).
-2. Extract the tools, and open terminal in the same directory ([Windows guide](https://youtu.be/6vVFmOcIADg?t=38), [macos guide](https://www.howtogeek.com/210147/how-to-open-terminal-in-the-current-os-x-finder-location/)).
-3. Turn on USB Debugging on your phone (This may require different steps, for Xiaomi you also have to enable `USB Debugging (Security settings)`, but generally [this video guide](https://youtu.be/Ucs34BkfPB0?t=29) should work on most phones)
-4. Connect your phone to your PC
-5. Run this command in the terminal
+## Origem e licença
 
-```
-./adb shell pm grant ru.karasevm.privatednstoggle android.permission.WRITE_SECURE_SETTINGS
-```
-
-6. That's it, you should have the app installed.
-
-## Contributing
-
-### Translation
-The easiest way to contribute would be to submit a translation to your language. Thanks to Weblate gratis hosting for open-source projects you can do it without any programming knowledge on [their website](https://hosted.weblate.org/engage/privatednsandroid/).
-#### Translation status
-<a href="https://hosted.weblate.org/engage/privatednsandroid/">
-<img src="https://hosted.weblate.org/widget/privatednsandroid/private-dns-quick-toggle/multi-auto.svg" alt="Translation status" />
-</a>
-
-### Code
-If you want to contribute code please try to adhere to the following guidelines:
-- Include javadoc comments for all the public methods you add
-- Keep the code neatly formatted, you can you the built-in Android Studio formatter
-- Please describe what your code does and how does it do that when sending a PR
-- Before sending a PR please test your change on the oldest and latest supported Android versions (9 and 14 at the time of writing)
+Fork de [karasevm/PrivateDNSAndroid](https://github.com/karasevm/PrivateDNSAndroid), com [eyalm2000/adns](https://github.com/eyalm2000/adns) como referência de integração e navegação. A licença MIT e a autoria original foram preservadas. Consulte o [README histórico do upstream](docs/UPSTREAM-README.md).

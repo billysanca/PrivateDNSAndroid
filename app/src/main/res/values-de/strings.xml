@@ -49,8 +49,8 @@
     <string name="shortcut_do_cycle">Nächster Server/Modus</string>
     <string name="shortcut_switch_mode">Modus wechseln</string>
     <string name="open_source_licenses">Open-Source-Lizenzen</string>
-    <string name="app_name">Private DNS Quick Toggle</string>
-    <string name="tile_name">Private DNS Toggle</string>
+    <string name="app_name">Nexo DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">Berechtigung nicht erteilt, überprüfen Sie die App für eine Anleitung</string>
     <string name="require_unlock_setting">Geräteentsperrung für den Serverwechsel verpflichtend machen</string>
     <string name="a11y_drag_handle">Schalter umlegen</string>

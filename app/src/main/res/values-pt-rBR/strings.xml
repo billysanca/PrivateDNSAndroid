@@ -2,12 +2,12 @@
 <resources>
     <string name="import_success">Importado</string>
     <string name="permission_missing">Permissão não concedida, verifique o app para saber como prosseguir</string>
-    <string name="app_name">Alteração de DNS privado</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="cancel">Cancelar</string>
     <string name="add_server">Adicionar servidor</string>
     <string name="add_edittext_hint">Endereço do servidor de DNS</string>
     <string name="auto_option_description">Escolha opções disponível em atalho</string>
-    <string name="tile_name">Alteração de DNS privado</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="dns_off">Desativado</string>
     <string name="dns_auto">Automático</string>
     <string name="dns_unknown">Indeterminado</string>

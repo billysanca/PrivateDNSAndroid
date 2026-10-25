@@ -1,15 +1,10 @@
-<p>
-  Private DNS Quick Toggle is a quick settings tile to switch your private
-  dns provider.
-  Supports any number of providers. Makes it easy to turn ad-blocking 
-  dns servers on or off with just a single tap.
-</p>
+Nexo DNS combines the original PrivateDNSAndroid hostname list, Quick Settings and Shizuku support with a four-tab native management interface inspired by ADNS.
 
-<b>Permissions</b>
-<p>
-  Requires WRITE_SECURE_SETTINGS permission to change the private dns settings.
-  The permission must be provided either with Shizuku or
-  <a href="https://karasevm.github.io/PrivateDNSAndroid/">
-    manually through adb
-  </a>.
-</p>
+DNS: manage and reorder private DNS hostnames.
+Statistics: read provider traffic and available account quotas.
+Queries: inspect recent requests with local search and filters.
+Settings: connect official NextDNS/AdGuard DNS APIs or attach any HTTPS provider dashboard through Custom Tabs or optional WebView.
+
+API access is read-only. There is no automatic DNS switching or remote API mutation. API keys use Android Keystore encryption. Web-panel passwords are not intercepted. Android 9+.
+
+This is an alpha build. Device validation and real-account integration testing remain pending. MIT-licensed fork; see the repository for provenance, security documentation and regression tests.

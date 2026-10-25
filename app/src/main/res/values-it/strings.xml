@@ -36,7 +36,7 @@
     <string name="menu_import">Importa</string>
     <string name="menu_export">Esporta</string>
     <string name="import_success">Importato</string>
-    <string name="app_name">Private DNS Quick Toggle</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="select_server">Selezionare il server</string>
     <string name="add_edittext_label_hint">Etichetta del server DNS (facoltativo)</string>
     <string name="auto_option_description">Scegli quali opzioni includere</string>
@@ -59,7 +59,7 @@
     <string name="permission_footer">Dovrai farlo solo una volta. Puoi navigare l\'applicazione, aggiungere server e modificare le impostazioni senza l\'autorizzazione.</string>
     <string name="permission_shizuku_text">Shizuku</string>
     <string name="set_to_provider_toast">DNS Privato impostato su %1$s</string>
-    <string name="tile_name">Interruttore DNS Privato</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="shortcut_switch_mode">Modalità switch</string>
     <string name="shortcut_do_cycle">Server/modo successivo</string>
     <string name="a11y_drag_handle">Maniglia di trascinamento</string>

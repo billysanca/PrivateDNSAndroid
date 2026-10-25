@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tile_name">Хувийн DNS солих</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="dns_off">Унтраах</string>
     <string name="dns_unknown">Тодорхойгүй</string>
     <string name="add_server">Сервер нэмэх</string>
@@ -29,7 +29,7 @@
     <string name="export_failure">Хадгалж чадсангүй</string>
     <string name="export_success">Амжилттай хадгалсан</string>
     <string name="edit_server">Сервер засах</string>
-    <string name="app_name">Хувийн DNS хурдан сэлгэх</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="menu_privacy_policy">Нууцлалын бодлого</string>
     <string name="permission_missing">Зөвшөөрөл олгоогүй. Үүнийг хэрхэн хийхийг харна уу</string>
     <string name="dns_auto">Авто</string>

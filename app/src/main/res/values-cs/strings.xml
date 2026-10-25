@@ -48,8 +48,8 @@
     <string name="menu_add">Přidat</string>
     <string name="menu_save">Uložit</string>
     <string name="delete_question">Smazat</string>
-    <string name="tile_name">Private DNS Toggle</string>
-    <string name="app_name">Private DNS Quick Toggle</string>
+    <string name="tile_name">Nexo DNS</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="delete">Smazat</string>
     <string name="import_success">Import úspěšný</string>
     <string name="permission_how_2">Pomocí adb udělte oprávnění ručně podle následujícího příkazu %1$s</string>

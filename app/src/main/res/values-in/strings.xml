@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Tombol Cepat DNS Pribadi</string>
-    <string name="tile_name">Tombol Pengaktifan DNS Pribadi</string>
+    <string name="app_name">Nexo DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">Izin tidak diberikan, periksa aplikasi untuk melihat caranya.</string>
     <string name="dns_off">Mati</string>
     <string name="dns_auto">Otomatis</string>

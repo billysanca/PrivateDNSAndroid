@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tile_name">私人 DNS 切换</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">未授予权限，请检查应用以了解如何操作</string>
     <string name="dns_off">关闭</string>
     <string name="dns_auto">自动</string>
@@ -48,7 +48,7 @@
     <string name="no_servers_added">未添加服务器</string>
     <string name="empty_hint">点击下方按钮添加</string>
     <string name="add_server_enabled">已启用</string>
-    <string name="app_name">私人 DNS 快捷切换</string>
+    <string name="app_name">Nexo DNS</string>
     <string name="shizuku_success_toast">已授予权限，您现在可以撤销 Shizuku 权限</string>
     <string name="shizuku_failure_toast">无法获取权限，请手动授予</string>
     <string name="shortcut_do_cycle">下个服务器/模式</string>

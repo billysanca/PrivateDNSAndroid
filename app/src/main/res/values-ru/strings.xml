@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Private DNS Quick Toggle</string>
-    <string name="tile_name">Переключить частный DNS</string>
+    <string name="app_name">Nexo DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">Разрешение не предоставлено, проверьте приложение для получения информации</string>
     <string name="dns_off">Выкл</string>
     <string name="dns_auto">Авто</string>

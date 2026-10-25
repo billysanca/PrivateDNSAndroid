@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ok">சரி</string>
-    <string name="app_name">தனியார் டி.என்.எச் விரைவாக மாற்று</string>
-    <string name="tile_name">தனியார் டி.என் கள் மாறுகின்றன</string>
+    <string name="app_name">Nexo DNS</string>
+    <string name="tile_name">Nexo DNS</string>
     <string name="permission_missing">இசைவு வழங்கப்படவில்லை, அதை எப்படி செய்வது என்று பார்க்க பயன்பாட்டை சரிபார்க்கவும்</string>
     <string name="dns_off">அணை</string>
     <string name="dns_auto">தானி</string>
